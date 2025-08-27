@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
+import { StandardResponse } from './standard-response';
 
 @Injectable()
 export class ResponseInterceptor<T> implements NestInterceptor<T, any> {
@@ -23,12 +24,7 @@ export class ResponseInterceptor<T> implements NestInterceptor<T, any> {
           return data;
         }
 
-        // Otherwise, wrap in standard response
-        return {
-          success: true,
-          message: 'Request successful',
-          data: data ?? null,
-        };
+        return StandardResponse.ok(data);
       }),
     );
   }

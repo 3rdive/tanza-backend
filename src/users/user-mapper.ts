@@ -1,5 +1,5 @@
-import { UserRegDto } from '../auth/model/user-reg.dto';
-import { UserResponseDto } from '../auth/model/user-response.dto';
+import { UserRegDto } from '../auth/models/user-reg.dto';
+import { UserResponseDto } from '../auth/models/user-response.dto';
 import { User } from './user.entity';
 
 export class UserMapper {
@@ -20,6 +20,7 @@ export class UserMapper {
     user.firstName = userRegDto.firstName;
     user.profilePic = userRegDto.profilePic;
     user.countryCode = userRegDto.countryCode;
+    user.password = userRegDto.password;
     return user;
   }
 

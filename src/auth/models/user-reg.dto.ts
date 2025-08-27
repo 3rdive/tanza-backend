@@ -25,7 +25,7 @@ export class UserRegDto {
   password: string;
 
   @IsNotEmpty({ message: 'otp is required' })
-  @Length(8, 20, { message: 'otp must be 4 characters' })
+  @Length(4, 20, { message: 'otp must be 4 characters' })
   otp: string;
 
   @IsOptional()
