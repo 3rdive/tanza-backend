@@ -1,4 +1,11 @@
-import { BadRequestException, Controller, Get, Query } from '@nestjs/common';
+import {
+  BadRequestException,
+  Body,
+  Controller,
+  Get,
+  Put,
+  Query,
+} from '@nestjs/common';
 import { JwtPayload } from '../auth/models/jwt-payload.type';
 import { Public } from '../auth/public.anotation';
 import { BaseUrl } from '../constants';
@@ -52,10 +59,10 @@ export class UserController {
     return this.usersService.getProfile(user.sub);
   }
 
-  @Get('profile/update')
+  @Put('profile')
   async updateProfile(
     @CurrentUser() user: JwtPayload,
-    @Query() dto: ProfileUpdateDto,
+    @Body() dto: ProfileUpdateDto,
   ) {
     if (!user) {
       throw new BadRequestException('Unauthorized');
@@ -63,10 +70,10 @@ export class UserController {
     return this.usersService.updateProfile(user.sub, dto);
   }
 
-  @Get('password/update')
+  @Put('password/update')
   async updatePassword(
     @CurrentUser() user: JwtPayload,
-    @Query() dto: PasswordUpdateDto,
+    @Body() dto: PasswordUpdateDto,
   ) {
     if (!user) {
       throw new BadRequestException('Unauthorized');
