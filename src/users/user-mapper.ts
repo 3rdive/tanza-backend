@@ -1,5 +1,6 @@
 import { UserRegDto } from '../auth/models/user-reg.dto';
 import { UserResponseDto } from '../auth/models/user-response.dto';
+import { UserProfileDto } from './models/user-profile.dto';
 import { User } from './user.entity';
 
 export class UserMapper {
@@ -26,5 +27,21 @@ export class UserMapper {
 
   static toResponseDtoList(users: User[]): UserResponseDto[] {
     return users.map((u) => this.toResponseDto(u));
+  }
+
+  static toProfileDto(user: User): UserProfileDto {
+    return {
+      id: user.id,
+      email: user.email,
+      mobile: user.mobile,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      role: user.role,
+      profilePic: user.profilePic ?? null,
+      countryCode: user.countryCode,
+      registrationDate: user.registrationDate,
+      updatedAt: user.updatedAt,
+      registrationMode: user.registrationMode,
+    };
   }
 }

@@ -1,24 +1,25 @@
 import {
-  BadRequestException,
   Injectable,
   NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
 import { StandardResponse } from '../../commons/standard-response';
 import { PasswordResetDto } from '../../users/models/password-reset.dto';
+import { RegMode } from '../../users/reg-mode.enum';
+import { UserDetailsService } from '../../users/user-details.service';
 import { UserMapper } from '../../users/user-mapper';
 import { UsersService } from '../../users/users.service';
 import { JwtService } from '@nestjs/jwt';
 import { UserRegDto } from '../models/user-reg.dto';
 import { UserResponseDto } from '../models/user-response.dto';
 import { Role } from '../roles.enum';
-import { User } from '../../users/user.entity';
 import * as bcrypt from 'bcrypt';
 
 @Injectable()
 export class AuthService {
   constructor(
     private usersService: UsersService,
+    private userDetailsService: UserDetailsService,
     private jwtService: JwtService,
   ) {}
 
@@ -33,7 +34,7 @@ export class AuthService {
     const token = await this.jwtService.signAsync(payload);
     return {
       access_token: token,
-      user: UserMapper.toResponseDto(user),
+      user: UserMapper.toProfileDto(user),
     };
   }
 
@@ -41,7 +42,10 @@ export class AuthService {
     username: string,
     pass: string,
   ): Promise<{ access_token: string; user: UserResponseDto }> {
-    const user = await this.usersService.findOne(username);
+    const user = await this.userDetailsService.findByEmailAndMobile(
+      username,
+      username,
+    );
     if (!user)
       throw new UnauthorizedException(StandardResponse.fail('User not found'));
 
@@ -58,12 +62,15 @@ export class AuthService {
     const payload = { role: user.role, sub: user.id };
     return {
       access_token: await this.jwtService.signAsync(payload),
-      user: UserMapper.toResponseDto(user),
+      user: UserMapper.toProfileDto(user),
     };
   }
 
   async resetPassword(passwordResetDto: PasswordResetDto) {
-    const user = await this.usersService.findOne(passwordResetDto.reference);
+    const user = await this.userDetailsService.findByEmailAndMobile(
+      passwordResetDto.reference,
+      passwordResetDto.reference,
+    );
 
     if (!user) {
       throw new NotFoundException(StandardResponse.fail('user not found'));
@@ -75,6 +82,19 @@ export class AuthService {
       'Password reset successfully',
       'Password reset successfully',
     );
+  }
+
+  async checkEmailMobileExisting(
+    emailOrMobile: string,
+  ): Promise<{ exists: boolean; registrationMode: RegMode | undefined }> {
+    const user = await this.userDetailsService.findByEmailAndMobile(
+      emailOrMobile,
+      emailOrMobile,
+    );
+    return {
+      exists: !!user,
+      registrationMode: user?.registrationMode,
+    };
   }
 
   async compareWithHashString({

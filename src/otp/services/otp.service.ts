@@ -47,7 +47,7 @@ export class OtpService {
     });
 
     if (!otp) {
-      throw new NotFoundException(StandardResponse.fail('Otp not found', null));
+      throw new NotFoundException(StandardResponse.fail('Invalid Otp', null));
     }
 
     if (otp.used) {

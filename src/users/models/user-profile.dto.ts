@@ -1,0 +1,16 @@
+import { Role } from '../../auth/roles.enum';
+import { RegMode } from '../reg-mode.enum';
+
+export class UserProfileDto {
+  id: string;
+  email: string;
+  mobile: string;
+  firstName: string;
+  lastName: string;
+  role: Role;
+  profilePic: string | null;
+  countryCode: string;
+  registrationDate: Date;
+  updatedAt: Date;
+  registrationMode: RegMode;
+}

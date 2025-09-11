@@ -2,11 +2,13 @@ import { Injectable, OnApplicationBootstrap } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { UserRegDto } from './auth/models/user-reg.dto';
 import { Role } from './auth/roles.enum';
+import { UserDetailsService } from './users/user-details.service';
 import { UsersService } from './users/users.service';
 
 @Injectable()
 export class OnStartUp implements OnApplicationBootstrap {
   constructor(
+    private readonly userDetailsService: UserDetailsService,
     private readonly userService: UsersService,
     private readonly configService: ConfigService,
   ) {}
@@ -16,7 +18,7 @@ export class OnStartUp implements OnApplicationBootstrap {
     const email = this.configService.get<string>('DEFAULT_ADMIN_EMAIL');
     const mobile = this.configService.get<string>('DEFAULT_ADMIN_MOBILE');
     const password = this.configService.get<string>('DEFAULT_ADMIN_PASSWORD');
-    const existingAdmin = await this.userService.findByEmailAndMobile(
+    const existingAdmin = await this.userDetailsService.findByEmailAndMobile(
       email!,
       mobile!,
     );

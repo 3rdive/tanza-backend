@@ -1,4 +1,14 @@
-import { Body, Controller, HttpCode, HttpStatus, Post } from '@nestjs/common';
+import {
+  BadRequestException,
+  Body,
+  Controller,
+  Get,
+  HttpCode,
+  HttpStatus,
+  Post,
+  Query,
+  Req,
+} from '@nestjs/common';
 import { BaseUrl } from '../constants';
 import { PasswordResetDto } from '../users/models/password-reset.dto';
 import { UserRegDto } from './models/user-reg.dto';
@@ -26,5 +36,15 @@ export class AuthController {
   @Post('reset-password')
   resetPassword(@Body() passwordResetDto: PasswordResetDto) {
     return this.authService.resetPassword(passwordResetDto);
+  }
+
+  @Get('check-existing')
+  async checkEmailMobileExisting(
+    @Query('emailOrMobile') emailOrMobile?: string,
+  ) {
+    if (!emailOrMobile) {
+      throw new BadRequestException('emailOrMobile is required');
+    }
+    return this.authService.checkEmailMobileExisting(emailOrMobile.trim());
   }
 }
