@@ -8,4 +8,6 @@ export class TransactionDto {
   orderId: string;
   type: TransactionType;
   status: TransactionStatus;
+  description?: string;
+  reference: string;
 }

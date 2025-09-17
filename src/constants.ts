@@ -7,4 +7,5 @@ export const BaseUrl = {
   RATINGS: 'api/v1/ratings',
   LOCATION: 'api/v1/location',
   ORDER: 'api/v1/order',
+  STORAGE: 'api/v1/storage-media',
 };

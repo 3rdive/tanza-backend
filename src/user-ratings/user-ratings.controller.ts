@@ -27,11 +27,11 @@ export class UserRatingsController {
   @Get('by-rider-user')
   async getByRiderAndUser(
     @Query('riderId') riderId: string,
-    @CurrentUser() user: JwtPayload,
+    @Query('userId') userId: string,
   ) {
-    if (!riderId || !user.sub)
+    if (!riderId || !userId)
       throw new BadRequestException('riderId and userId are required');
-    return this.service.getByRiderAndUser(riderId, user.sub);
+    return this.service.getByRiderAndUser(riderId, userId);
   }
 
   @Get(':ratingId')

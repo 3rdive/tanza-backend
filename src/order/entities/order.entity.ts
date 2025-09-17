@@ -2,13 +2,17 @@ import {
   Column,
   CreateDateColumn,
   Entity,
+  JoinColumn,
   ManyToMany,
   ManyToOne,
+  OneToMany,
+  OneToOne,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
 import { User } from '../../users/user.entity';
 import { Transactions } from '../../wallet/entities/transaction.entity';
+import { OrderTracking } from './order-tracking.entity';
 import { UserInfo } from './user-info';
 import { UserOrderRole } from './user-order-role.enum';
 import { VehicleType } from './vehicle-type.enum';
@@ -18,7 +22,7 @@ export class Order {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @ManyToMany(() => Transactions, (transaction) => transaction.order)
+  @OneToMany(() => Transactions, (transaction) => transaction.order)
   transactions: Transactions[];
 
   @Column({ type: 'jsonb', nullable: true })
@@ -42,8 +46,17 @@ export class Order {
   @Column({ nullable: true })
   noteForRider: string;
 
-  @Column()
+  @Column({ type: 'decimal', precision: 10, scale: 2 })
   serviceChargeAmount: number;
+
+  @Column({ type: 'decimal', precision: 10, scale: 2 })
+  deliveryFee: number;
+
+  @Column({ type: 'decimal', precision: 12, scale: 2 })
+  totalAmount: number;
+
+  @OneToMany(() => OrderTracking, (orderTracking) => orderTracking.order)
+  orderTracking: OrderTracking[];
 
   @Column()
   eta: string;
@@ -53,9 +66,6 @@ export class Order {
 
   @ManyToOne(() => User, (user) => user.orders)
   user: User;
-
-  @Column()
-  totalAmount: number;
 
   @CreateDateColumn()
   createdAt: Date;

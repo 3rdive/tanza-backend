@@ -40,6 +40,9 @@ export class User {
   @Column({ nullable: true })
   profilePic: string;
 
+  @Column({ nullable: true })
+  usersAddress: string;
+
   @Column()
   countryCode: string;
 

@@ -130,6 +130,7 @@ export class UsersService {
     if (dto.lastName !== undefined) user.lastName = dto.lastName;
     if (dto.profilePic !== undefined) user.profilePic = dto.profilePic;
     if (dto.countryCode !== undefined) user.countryCode = dto.countryCode;
+    if (dto.usersAddress !== undefined) user.usersAddress = dto.usersAddress;
 
     const saved = await this.userRepository.save(user);
     return UserMapper.toProfileDto(saved);
@@ -164,7 +165,17 @@ export class UsersService {
       throw new BadRequestException(StandardResponse.fail('user not found'));
     }
     user.profilePic = imageUrl;
-    const saved = await this.userRepository.save(user);
-    return UserMapper.toProfileDto(saved);
+    await this.userRepository.save(user);
+    return 'profile pic updated successfully';
+  }
+
+  async updateUserAddress(userId: string, address: string) {
+    const user = await this.userRepository.findOne({ where: { id: userId } });
+    if (!user) {
+      throw new BadRequestException(StandardResponse.fail('user not found'));
+    }
+    user.usersAddress = address;
+    await this.userRepository.save(user);
+    return 'address updated successfully';
   }
 }

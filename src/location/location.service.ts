@@ -8,14 +8,6 @@ import axios, { AxiosError } from 'axios';
 import { ConfigService } from '@nestjs/config';
 import { StandardResponse } from '../commons/standard-response';
 
-type NominatimSearchItem = {
-  place_id: number;
-  display_name: string;
-  lat: string;
-  lon: string;
-  address?: Record<string, unknown>;
-};
-
 type NominatimReverseResult = {
   place_id: number;
   display_name: string;
@@ -32,6 +24,25 @@ type OrsRoute = {
 type OrsDirectionsResponse = {
   routes: OrsRoute[];
 };
+export interface PhotonFeature {
+  geometry: {
+    type: string;
+    coordinates: [number, number];
+  };
+  properties: {
+    name?: string;
+    country?: string;
+    state?: string;
+    city?: string;
+    street?: string;
+    postcode?: string;
+    [key: string]: any;
+  };
+}
+
+interface PhotonResponse {
+  features: PhotonFeature[];
+}
 
 @Injectable()
 export class LocationService {
@@ -39,41 +50,35 @@ export class LocationService {
   private readonly ORS_URL: string | undefined;
   private readonly ORS_API_KEY: string | undefined;
   private readonly APP_USER_AGENT: string | undefined;
+  private readonly PHOTON_URL: string | undefined;
 
   constructor(private readonly config: ConfigService) {
     this.NOMINATIM_URL = this.config.get<string>('NOMINATIM_URL');
     this.ORS_URL = this.config.get<string>('ORS_URL');
     this.ORS_API_KEY = this.config.get<string>('ORS_API_KEY');
     this.APP_USER_AGENT = this.config.get<string>('APP_USER_AGENT');
+    this.PHOTON_URL = this.config.get<string>('PHOTON_URL');
   }
 
-  async searchLocation(query: string): Promise<NominatimSearchItem[]> {
+  async searchLocation(query: string): Promise<PhotonFeature[]> {
     if (!query || !query.trim()) {
       throw new BadRequestException('Query parameter q is required');
     }
 
     try {
-      const response = await axios.get<NominatimSearchItem[]>(
-        `${this.NOMINATIM_URL}/search`,
-        {
-          params: {
-            q: query,
-            format: 'json',
-            addressdetails: 1,
-            limit: 5,
-            countrycodes: 'ng', // restrict to Nigeria
-          },
-          headers: {
-            'User-Agent': this.APP_USER_AGENT, // Nominatim requires a valid UA
-          },
+      const response = await axios.get<PhotonResponse>(this.PHOTON_URL!, {
+        params: {
+          q: query,
+          limit: 5,
+          lang: 'en',
         },
-      );
+      });
 
-      return response.data;
+      return response.data.features;
     } catch (err) {
       const e = err as AxiosError;
       throw new InternalServerErrorException(
-        `Nominatim search failed: ${e.message}`,
+        `Photon search failed: ${e.message}`,
       );
     }
   }
@@ -119,7 +124,9 @@ export class LocationService {
     mode: 'driving-car' | 'cycling-regular' | 'foot-walking' = 'driving-car',
   ): Promise<{
     distance_meters: number;
+    distance_in_km: number;
     duration_seconds: number;
+    duration_in_words: string;
     geometry?: unknown;
   }> {
     if (!this.ORS_API_KEY) {
@@ -148,7 +155,9 @@ export class LocationService {
       }
       return {
         distance_meters: route.summary?.distance,
+        distance_in_km: route.summary?.distance / 1000,
         duration_seconds: route.summary?.duration,
+        duration_in_words: this.secondsToWords(route.summary?.duration),
         geometry: route.geometry, // polyline for map if needed
       };
     } catch (err) {
@@ -156,9 +165,35 @@ export class LocationService {
       const msg = e.response?.data
         ? JSON.stringify(e.response.data)
         : e.message;
-      throw new InternalServerErrorException(
-        StandardResponse.fail(`OpenRouteService request failed: ${msg}`),
+      console.error('OpenRouteService error:', msg);
+      throw new BadRequestException(
+        StandardResponse.fail(
+          'Error Calculation Distance, please try another location.',
+        ),
       );
     }
+  }
+
+  secondsToWords(seconds: number): string {
+    if (seconds === 0) return '0 seconds';
+
+    const units = [
+      { label: 'day', value: 86400 },
+      { label: 'hour', value: 3600 },
+      { label: 'minute', value: 60 },
+      { label: 'second', value: 1 },
+    ];
+
+    const parts: string[] = [];
+
+    for (const unit of units) {
+      const amount = Math.floor(seconds / unit.value);
+      if (amount > 0) {
+        parts.push(`${amount} ${unit.label}${amount > 1 ? 's' : ''}`);
+        seconds %= unit.value;
+      }
+    }
+
+    return parts.join(' ');
   }
 }

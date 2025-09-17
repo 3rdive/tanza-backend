@@ -1,10 +1,11 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
+import { isUUID } from 'class-validator';
 import { Repository } from 'typeorm';
-import { PaginationDto } from '../../commons/pagination.dto';
 import { PaginationService } from '../../commons/pagination.service';
 import { StandardResponse } from '../../commons/standard-response';
 import { TransactionDto } from '../dto/transaction-dto';
+import { TransactionPaginationDto } from '../dto/transaction-pagination.dto';
 import { Transactions } from '../entities/transaction.entity';
 import { WalletMapper } from './wallet-mapper';
 
@@ -19,12 +20,21 @@ export class TransactionService {
     return this.transactionRepository.save(transactionDto);
   }
 
-  async fetchTransactions(userId: string, paginationDto: PaginationDto) {
+  checkExistingTransaction(userId: string, reference: string) {
+    return this.transactionRepository.exists({
+      where: { userId, reference },
+    });
+  }
+
+  async fetchTransactions(
+    userId: string,
+    paginationDto: TransactionPaginationDto,
+  ) {
     const { data: transactions, pagination } =
       await PaginationService.findWithPagination<Transactions>({
         repository: this.transactionRepository,
-        paginationDto,
-        where: { userId },
+        paginationDto: { limit: paginationDto.limit, page: paginationDto.page },
+        where: { userId, type: paginationDto.transactionType },
       });
 
     return StandardResponse.withPagination(
@@ -36,11 +46,11 @@ export class TransactionService {
 
   async findById(userId: string, idOrReference: string) {
     // TODO: map transaction with the order attached to it
-    const transaction = await this.transactionRepository.find({
-      where: [{ id: idOrReference }, { reference: idOrReference }],
-      relations: ['order', 'user'],
-    });
+    const useUUID = isUUID(idOrReference);
 
-    return transaction;
+    return await this.transactionRepository.findOne({
+      where: useUUID ? { id: idOrReference } : { reference: idOrReference },
+      relations: ['order', 'order.orderTracking'],
+    });
   }
 }

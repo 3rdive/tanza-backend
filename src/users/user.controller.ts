@@ -3,6 +3,7 @@ import {
   Body,
   Controller,
   Get,
+  Post,
   Put,
   Query,
 } from '@nestjs/common';
@@ -81,7 +82,7 @@ export class UserController {
     return this.usersService.updatePassword(user.sub, dto);
   }
 
-  @Get('profile/pic/update')
+  @Post('profile/pic/update')
   async updateProfilePic(
     @CurrentUser() user: JwtPayload,
     @Query('imageUrl') imageUrl?: string,
@@ -93,5 +94,16 @@ export class UserController {
       throw new BadRequestException('imageUrl is required');
     }
     return this.usersService.updateProfilePic(user.sub, imageUrl.trim());
+  }
+
+  @Post('profile/address/update')
+  async updateUserAddress(
+    @CurrentUser() user: JwtPayload,
+    @Query('address') address?: string,
+  ) {
+    if (!address || !address.trim()) {
+      throw new BadRequestException('address is required');
+    }
+    return this.usersService.updateUserAddress(user.sub, address.trim());
   }
 }

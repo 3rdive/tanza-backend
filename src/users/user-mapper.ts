@@ -22,6 +22,7 @@ export class UserMapper {
     user.profilePic = userRegDto.profilePic;
     user.countryCode = userRegDto.countryCode;
     user.password = userRegDto.password;
+    user.usersAddress = userRegDto.usersAddress;
     return user;
   }
 
@@ -42,6 +43,7 @@ export class UserMapper {
       registrationDate: user.registrationDate,
       updatedAt: user.updatedAt,
       registrationMode: user.registrationMode,
+      usersAddress: user.usersAddress,
     };
   }
 }

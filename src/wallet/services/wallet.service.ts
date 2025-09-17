@@ -1,11 +1,18 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
+import { EventBus } from '@nestjs/cqrs';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
+import { NumberUtil } from '../../commons/number.util';
 import { StandardResponse } from '../../commons/standard-response';
 import { UserDetailsService } from '../../users/user-details.service';
+import { TransactionDto } from '../dto/transaction-dto';
+import { TransactionStatus } from '../dto/transaction-status';
+import { TransactionType } from '../entities/transaction-type.enum';
 import { VirtualAccount } from '../entities/virtual-account.entity';
 import { Wallets } from '../entities/wallet.entity';
+import { CreateTransactionEvent } from '../events/models/create-transaction.event';
 import { PayStackService } from './pay-stack.service';
+import { TransactionService } from './transaction.service';
 import { WalletMapper } from './wallet-mapper';
 
 @Injectable()
@@ -17,6 +24,8 @@ export class WalletService {
     private readonly virtualAccountRepository: Repository<VirtualAccount>,
     private readonly userDetailsService: UserDetailsService,
     private readonly payStackService: PayStackService,
+    private readonly transactionService: TransactionService,
+    private readonly eventBus: EventBus,
   ) {}
 
   async deductAmount(userId: string, amount: number) {
@@ -24,7 +33,7 @@ export class WalletService {
     if (!wallet) {
       throw new BadRequestException(StandardResponse.fail('wallet not found'));
     }
-    wallet.walletBalance = wallet.walletBalance + amount;
+    wallet.walletBalance = NumberUtil.add(wallet.walletBalance, amount);
     await this.walletRepository.save(wallet);
   }
 
@@ -91,7 +100,11 @@ export class WalletService {
     return WalletMapper.mapToVirtualAccountDto(virtualAccount);
   }
 
-  async fundWallet(customerCode: string, transactionReference: string) {
+  async fundWallet(
+    customerCode: string,
+    transactionReference: string,
+    description?: string,
+  ) {
     const verifyData =
       await this.payStackService.verifyTransaction(transactionReference);
 
@@ -109,8 +122,32 @@ export class WalletService {
         );
       }
       const creditedAmount = verifyData.amount / 100; // convert from kobo
-      wallet.walletBalance = wallet.walletBalance + creditedAmount;
+
+      const isExisting = await this.transactionService.checkExistingTransaction(
+        wallet.userId,
+        transactionReference,
+      );
+      if (isExisting) {
+        console.log(
+          `Transaction with reference ${transactionReference} already existing`,
+        );
+        return 'Payment Verification Failed. Transaction already exists';
+      }
+      wallet.walletBalance = NumberUtil.add(
+        wallet.walletBalance,
+        creditedAmount,
+      );
       await this.walletRepository.save(wallet);
+
+      const trn = new TransactionDto();
+      trn.walletId = wallet.id;
+      trn.userId = wallet.userId;
+      trn.reference = transactionReference;
+      trn.amount = creditedAmount;
+      trn.status = TransactionStatus.COMPLETE;
+      trn.type = TransactionType.DEPOSIT;
+      trn.description = description ?? `Wallet Top-up with +₦${creditedAmount}`;
+      this.eventBus.publish(new CreateTransactionEvent(trn));
 
       console.log(
         `Wallet credited: ${customerCode} +₦${creditedAmount} (ref: ${transactionReference})`,

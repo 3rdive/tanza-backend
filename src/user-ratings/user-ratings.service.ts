@@ -81,7 +81,7 @@ export class UserRatingsService {
     const { data, pagination } =
       await PaginationService.findWithPagination<UserRating>({
         repository: this.ratingRepo,
-        paginationDto: { take: paginationDto.limit, page: paginationDto.page },
+        paginationDto: { limit: paginationDto.limit, page: paginationDto.page },
         where: { riderId },
       });
     return StandardResponse.withPagination(

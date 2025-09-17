@@ -25,4 +25,8 @@ export class ProfileUpdateDto {
   @IsOptional()
   @IsString()
   mobile?: string;
+
+  @IsOptional()
+  @IsString()
+  usersAddress?: string;
 }

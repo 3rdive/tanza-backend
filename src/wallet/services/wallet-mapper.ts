@@ -12,6 +12,7 @@ export class WalletMapper {
       walletBalance: wallet.walletBalance,
       createdAt: wallet.createdAt,
       isFrozen: wallet.isFrozen,
+      customerCode: wallet.customerCode,
     };
   }
 

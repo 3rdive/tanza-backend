@@ -13,6 +13,7 @@ import { WalletModule } from './wallet/wallet.module';
 import { OrderModule } from './order/order.module';
 import { UserRatingsModule } from './user-ratings/user-ratings.module';
 import { LocationModule } from './location/location.module';
+import { StorageMediaModule } from './storage-media/storage-media.module';
 
 @Module({
   imports: [
@@ -48,6 +49,7 @@ import { LocationModule } from './location/location.module';
     UserRatingsModule,
     LocationModule,
     CqrsModule.forRoot(),
+    StorageMediaModule,
   ],
   controllers: [AppController],
   providers: [AppService, RequestContextService],

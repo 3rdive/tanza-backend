@@ -13,4 +13,5 @@ export class UserProfileDto {
   registrationDate: Date;
   updatedAt: Date;
   registrationMode: RegMode;
+  usersAddress: string;
 }

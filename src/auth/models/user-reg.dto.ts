@@ -1,10 +1,4 @@
-import {
-  IsEmail,
-  IsNotEmpty,
-  IsOptional,
-  IsUrl,
-  Length,
-} from 'class-validator';
+import { IsEmail, IsNotEmpty, IsUrl, Length } from 'class-validator';
 
 export class UserRegDto {
   @IsNotEmpty({ message: 'lastName is required' })
@@ -12,6 +6,9 @@ export class UserRegDto {
 
   @IsNotEmpty({ message: 'firstName is required' })
   firstName: string;
+
+  @IsNotEmpty({ message: 'usersAddress is required' })
+  usersAddress: string;
 
   @IsEmail()
   email: string;
@@ -28,7 +25,7 @@ export class UserRegDto {
   @Length(4, 20, { message: 'otp must be 4 characters' })
   otp: string;
 
-  @IsOptional()
+  @IsNotEmpty({ message: 'profilePic is required' })
   @IsUrl()
   profilePic: string;
 

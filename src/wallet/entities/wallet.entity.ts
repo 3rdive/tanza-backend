@@ -23,7 +23,8 @@ export class Wallets {
   @OneToOne(() => User, (user) => user.wallet)
   user: User;
 
-  @Column({ default: 0 })
+  //DO NOT UPDATE without migration script
+  @Column({ type: 'decimal', precision: 12, scale: 2, default: 0 })
   walletBalance: number;
 
   @OneToMany(() => Transactions, (transaction) => transaction.wallet)

@@ -5,6 +5,7 @@ import {
   JoinColumn,
   ManyToMany,
   ManyToOne,
+  OneToOne,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
@@ -31,7 +32,7 @@ export class Transactions {
   @ManyToOne(() => User, (user) => user.transactions)
   user: User;
 
-  @Column()
+  @Column({ type: 'decimal', precision: 12, scale: 2, default: 0 })
   amount: number;
 
   @Column()
@@ -40,14 +41,13 @@ export class Transactions {
   @Column({ nullable: true }) //for bank transfer
   orderId: string;
 
-  @ManyToMany(() => Order, (order) => order.transactions)
-  @JoinColumn()
+  @ManyToOne(() => Order, (order) => order.transactions, { nullable: true })
   order: Order;
 
   @Column({ type: 'enum', enum: TransactionType })
   type: TransactionType;
 
-  @Column()
+  @Column({ nullable: true })
   description: string;
 
   @CreateDateColumn()

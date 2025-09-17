@@ -42,6 +42,7 @@ export class CreateOrderDto {
   @IsNotEmpty()
   dropOffLocation: string;
 
+  @IsNotEmpty()
   @IsEnum(UserOrderRole)
   userOrderRole: UserOrderRole;
 

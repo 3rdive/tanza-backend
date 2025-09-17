@@ -8,7 +8,7 @@ export interface IStandardResponse<T> {
 class Pagination {
   total: number; //total number of items existing
   page: number; //indexes
-  take: number; //total number of items fetched
+  limit: number; //total number of items fetched
   totalPages: number; //current index
 }
 

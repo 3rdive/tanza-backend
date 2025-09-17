@@ -15,6 +15,7 @@ export class PayStackService {
   ) {
     const BASEURL = this.configService.get<string>('PAYSTACK_BASE_URL');
     const environment = this.configService.get<string>('NODE_ENV');
+    const bearerToken = this.configService.get<string>('PAYSTACK_SECRET_KEY');
     // 1. Create customer on Paystack
     const customerRes = await axios.post(
       `${BASEURL}/customer`,
@@ -25,7 +26,7 @@ export class PayStackService {
       },
       {
         headers: {
-          Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}`,
+          Authorization: `Bearer ${bearerToken}`,
         },
       },
     );
@@ -42,7 +43,7 @@ export class PayStackService {
       },
       {
         headers: {
-          Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}`,
+          Authorization: `Bearer ${bearerToken}`,
         },
       },
     );

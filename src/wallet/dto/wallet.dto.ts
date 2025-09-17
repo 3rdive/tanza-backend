@@ -3,4 +3,5 @@ export class WalletDto {
   walletBalance: number;
   createdAt: Date;
   isFrozen: boolean;
+  customerCode: string;
 }
