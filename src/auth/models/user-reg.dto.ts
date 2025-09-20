@@ -1,4 +1,12 @@
-import { IsEmail, IsNotEmpty, IsUrl, Length } from 'class-validator';
+import { Type } from 'class-transformer';
+import {
+  IsEmail,
+  IsNotEmpty,
+  IsUrl,
+  Length,
+  ValidateNested,
+} from 'class-validator';
+import { UserAddress } from '../../users/user-address';
 
 export class UserRegDto {
   @IsNotEmpty({ message: 'lastName is required' })
@@ -8,7 +16,9 @@ export class UserRegDto {
   firstName: string;
 
   @IsNotEmpty({ message: 'usersAddress is required' })
-  usersAddress: string;
+  @ValidateNested({ each: true })
+  @Type(() => UserAddress)
+  usersAddress: UserAddress;
 
   @IsEmail()
   email: string;
@@ -26,7 +36,7 @@ export class UserRegDto {
   otp: string;
 
   @IsNotEmpty({ message: 'profilePic is required' })
-  @IsUrl()
+  // @IsUrl()
   profilePic: string;
 
   @IsNotEmpty({ message: 'countryCode is required' })

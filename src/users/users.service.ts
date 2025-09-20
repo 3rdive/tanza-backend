@@ -10,6 +10,7 @@ import { PasswordResetDto } from './models/password-reset.dto';
 import { PasswordUpdateDto } from './models/password-update.dto';
 import { ProfileUpdateDto } from './models/profile-update.dto';
 import { UserProfileDto } from './models/user-profile.dto';
+import { UserAddress } from './user-address';
 import { UserDetailsService } from './user-details.service';
 import { UserMapper } from './user-mapper';
 import { User } from './user.entity';
@@ -130,7 +131,14 @@ export class UsersService {
     if (dto.lastName !== undefined) user.lastName = dto.lastName;
     if (dto.profilePic !== undefined) user.profilePic = dto.profilePic;
     if (dto.countryCode !== undefined) user.countryCode = dto.countryCode;
-    if (dto.usersAddress !== undefined) user.usersAddress = dto.usersAddress;
+
+    if (
+      dto.usersAddress?.name &&
+      dto.usersAddress?.lat &&
+      dto.usersAddress?.lon
+    ) {
+      user.usersAddress = dto.usersAddress;
+    }
 
     const saved = await this.userRepository.save(user);
     return UserMapper.toProfileDto(saved);
@@ -169,7 +177,7 @@ export class UsersService {
     return 'profile pic updated successfully';
   }
 
-  async updateUserAddress(userId: string, address: string) {
+  async updateUserAddress(userId: string, address: UserAddress) {
     const user = await this.userRepository.findOne({ where: { id: userId } });
     if (!user) {
       throw new BadRequestException(StandardResponse.fail('user not found'));

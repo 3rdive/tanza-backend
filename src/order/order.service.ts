@@ -121,7 +121,7 @@ export class OrderService {
     await this.addOrderTracking({
       orderId: order.id,
       note: 'Order created',
-      status: TrackingStatus.PICKED_UP,
+      status: TrackingStatus.PENDING,
     });
     return StandardResponse.ok(saved, 'Order created successfully');
   }

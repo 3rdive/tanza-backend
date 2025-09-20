@@ -1,5 +1,6 @@
 // src/location/location.controller.ts
 import { BadRequestException, Controller, Get, Query } from '@nestjs/common';
+import { Public } from '../auth/public.anotation';
 import { StandardResponse } from '../commons/standard-response';
 import { BaseUrl } from '../constants';
 import { LocationService } from './location.service';
@@ -8,11 +9,13 @@ import { LocationService } from './location.service';
 export class LocationController {
   constructor(private readonly locationService: LocationService) {}
 
+  @Public()
   @Get('search')
   async search(@Query('q') query: string) {
     return this.locationService.searchLocation(query);
   }
 
+  @Public()
   @Get('reverse')
   async reverse(@Query('lat') lat: number, @Query('lon') lon: number) {
     return this.locationService.reverseGeocode(lat, lon);

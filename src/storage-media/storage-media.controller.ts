@@ -21,6 +21,7 @@ import * as fs from 'fs';
 import * as crypto from 'crypto';
 
 @Controller(BaseUrl.STORAGE)
+@Public()
 export class StorageMediaController {
   constructor(private readonly storageMediaService: StorageMediaService) {}
 

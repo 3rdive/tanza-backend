@@ -10,6 +10,7 @@ import {
 import { JwtPayload } from '../auth/models/jwt-payload.type';
 import { Public } from '../auth/public.anotation';
 import { BaseUrl } from '../constants';
+import { UserAddress } from './user-address';
 import { UserDetailsService } from './user-details.service';
 import { CurrentUser } from './user.decorator';
 import { UsersService } from './users.service';
@@ -99,11 +100,16 @@ export class UserController {
   @Post('profile/address/update')
   async updateUserAddress(
     @CurrentUser() user: JwtPayload,
-    @Query('address') address?: string,
+    @Body() userAddress: UserAddress,
   ) {
-    if (!address || !address.trim()) {
+    if (
+      !userAddress ||
+      !userAddress?.name ||
+      !userAddress?.lat ||
+      !userAddress?.lon
+    ) {
       throw new BadRequestException('address is required');
     }
-    return this.usersService.updateUserAddress(user.sub, address.trim());
+    return this.usersService.updateUserAddress(user.sub, userAddress);
   }
 }

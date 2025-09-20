@@ -13,6 +13,7 @@ import { Order } from '../order/entities/order.entity';
 import { Transactions } from '../wallet/entities/transaction.entity';
 import { Wallets } from '../wallet/entities/wallet.entity';
 import { RegMode } from './reg-mode.enum';
+import { UserAddress } from './user-address';
 
 @Entity()
 export class User {
@@ -40,8 +41,8 @@ export class User {
   @Column({ nullable: true })
   profilePic: string;
 
-  @Column({ nullable: true })
-  usersAddress: string;
+  @Column({ nullable: true, type: 'jsonb' })
+  usersAddress: UserAddress;
 
   @Column()
   countryCode: string;

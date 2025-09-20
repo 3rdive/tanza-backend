@@ -1,5 +1,6 @@
 import { Role } from '../../auth/roles.enum';
 import { RegMode } from '../reg-mode.enum';
+import { UserAddress } from '../user-address';
 
 export class UserProfileDto {
   id: string;
@@ -13,5 +14,5 @@ export class UserProfileDto {
   registrationDate: Date;
   updatedAt: Date;
   registrationMode: RegMode;
-  usersAddress: string;
+  usersAddress: UserAddress;
 }

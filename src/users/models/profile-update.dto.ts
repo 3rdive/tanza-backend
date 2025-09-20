@@ -1,4 +1,6 @@
-import { IsOptional, IsString, Length } from 'class-validator';
+import { Type } from 'class-transformer';
+import { IsOptional, IsString, Length, ValidateNested } from 'class-validator';
+import { UserAddress } from '../user-address';
 
 export class ProfileUpdateDto {
   @IsOptional()
@@ -27,6 +29,7 @@ export class ProfileUpdateDto {
   mobile?: string;
 
   @IsOptional()
-  @IsString()
-  usersAddress?: string;
+  @ValidateNested()
+  @Type(() => UserAddress)
+  usersAddress?: UserAddress;
 }
