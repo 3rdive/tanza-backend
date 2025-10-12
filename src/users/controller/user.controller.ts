@@ -7,15 +7,15 @@ import {
   Put,
   Query,
 } from '@nestjs/common';
-import { JwtPayload } from '../auth/models/jwt-payload.type';
-import { Public } from '../auth/public.anotation';
-import { BaseUrl } from '../constants';
-import { UserAddress } from './user-address';
-import { UserDetailsService } from './user-details.service';
-import { CurrentUser } from './user.decorator';
-import { UsersService } from './users.service';
-import { ProfileUpdateDto } from './models/profile-update.dto';
-import { PasswordUpdateDto } from './models/password-update.dto';
+import { JwtPayload } from '../../auth/models/jwt-payload.type';
+import { Public } from '../../auth/public.anotation';
+import { BaseUrl } from '../../constants';
+import { UserAddress } from '../user-address';
+import { UserDetailsService } from '../services/user-details.service';
+import { CurrentUser } from '../user.decorator';
+import { UsersService } from '../services/users.service';
+import { ProfileUpdateDto } from '../models/profile-update.dto';
+import { PasswordUpdateDto } from '../models/password-update.dto';
 
 @Controller(BaseUrl.USER)
 export class UserController {

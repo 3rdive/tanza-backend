@@ -1,10 +1,19 @@
-import { Body, Controller, Get, Param, Post, Query } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Post,
+  Query,
+} from '@nestjs/common';
 import { JwtPayload } from '../auth/models/jwt-payload.type';
 import { BaseUrl } from '../constants';
 import { CurrentUser } from '../users/user.decorator';
 import { OrderService } from './order.service';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { CalculateChargeQueryDto } from './dto/calculate-charge-query.dto';
+import { OrderTrackingDto } from './dto/order-tracking.dto';
 
 @Controller(BaseUrl.ORDER)
 export class OrderController {
@@ -39,6 +48,18 @@ export class OrderController {
 
   @Get(':id')
   findOne(@Param('id') id: string) {
-    return this.orderService.findOne(+id);
+    return this.orderService.findOne(id);
+  }
+
+  @Post(':id/tracking')
+  async addTracking(@Param('id') id: string, @Body() dto: OrderTrackingDto) {
+    // ensure orderId matches param to avoid tampering
+    dto.orderId = id;
+    return this.orderService.addOrderTracking(dto);
+  }
+
+  @Delete('tracking/:id')
+  async removeTracking(@Param('id') id: string) {
+    return this.orderService.removeOrderTracking(id);
   }
 }

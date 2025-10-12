@@ -7,7 +7,6 @@ import {
   HttpStatus,
   Post,
   Query,
-  Req,
 } from '@nestjs/common';
 import { BaseUrl } from '../constants';
 import { PasswordResetDto } from '../users/models/password-reset.dto';

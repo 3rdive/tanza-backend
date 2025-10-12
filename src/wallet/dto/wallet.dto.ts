@@ -4,4 +4,5 @@ export class WalletDto {
   createdAt: Date;
   isFrozen: boolean;
   customerCode: string;
+  totalAmountEarned?: number;
 }

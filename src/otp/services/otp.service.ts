@@ -8,7 +8,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { StandardResponse } from '../../commons/standard-response';
 import { ConsumeOtp } from '../consume-otp.dto';
-import { UsersService } from '../../users/users.service';
+import { UsersService } from '../../users/services/users.service';
 import { OtpCreateEvent } from '../events/otp-create.event';
 import { OtpsEntity } from '../otps.entity';
 import { OtpDto } from '../otp.dto';

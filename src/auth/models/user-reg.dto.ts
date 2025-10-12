@@ -1,12 +1,14 @@
 import { Type } from 'class-transformer';
 import {
   IsEmail,
+  IsEnum,
   IsNotEmpty,
-  IsUrl,
+  IsOptional,
   Length,
   ValidateNested,
 } from 'class-validator';
 import { UserAddress } from '../../users/user-address';
+import { Role } from '../roles.enum';
 
 export class UserRegDto {
   @IsNotEmpty({ message: 'lastName is required' })
@@ -15,11 +17,12 @@ export class UserRegDto {
   @IsNotEmpty({ message: 'firstName is required' })
   firstName: string;
 
-  @IsNotEmpty({ message: 'usersAddress is required' })
+  @IsOptional()
   @ValidateNested({ each: true })
   @Type(() => UserAddress)
   usersAddress: UserAddress;
 
+  @IsOptional()
   @IsEmail()
   email: string;
 
@@ -41,4 +44,8 @@ export class UserRegDto {
 
   @IsNotEmpty({ message: 'countryCode is required' })
   countryCode: string;
+
+  @IsOptional()
+  @IsEnum(Role)
+  role: Role = Role.User;
 }

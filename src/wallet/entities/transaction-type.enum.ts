@@ -1,4 +1,5 @@
 export enum TransactionType {
   DEPOSIT = 'DEPOSIT',
   ORDER = 'ORDER',
+  ORDER_REWARD = 'ORDER_REWARD',
 }

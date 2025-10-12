@@ -2,11 +2,8 @@ import {
   Column,
   CreateDateColumn,
   Entity,
-  JoinColumn,
-  ManyToMany,
   ManyToOne,
   OneToMany,
-  OneToOne,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
@@ -16,6 +13,7 @@ import { OrderTracking } from './order-tracking.entity';
 import { UserInfo } from './user-info';
 import { UserOrderRole } from './user-order-role.enum';
 import { VehicleType } from './vehicle-type.enum';
+import { OrderLocation } from '../dto/order-location';
 
 @Entity()
 export class Order {
@@ -32,10 +30,10 @@ export class Order {
   recipient: UserInfo;
 
   @Column({ type: 'jsonb', nullable: true })
-  pickUpLocation: string;
+  pickUpLocation: OrderLocation;
 
-  @Column()
-  dropOffLocation: string;
+  @Column({ type: 'jsonb', nullable: true })
+  dropOffLocation: OrderLocation;
 
   @Column({ type: 'enum', enum: UserOrderRole })
   userOrderRole: UserOrderRole;

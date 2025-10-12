@@ -20,7 +20,7 @@ export class WalletController {
     if (!user) {
       throw new BadRequestException('Unauthorized');
     }
-    return this.walletService.getWallet(user.sub);
+    return this.walletService.getUserWallet(user.sub);
   }
 
   @Get('virtual-account')
@@ -36,4 +36,6 @@ export class WalletController {
     const { customerCode, transactionReference } = dto;
     return this.walletService.fundWallet(customerCode, transactionReference);
   }
+
+  //todo endpoint to get riders wallet
 }

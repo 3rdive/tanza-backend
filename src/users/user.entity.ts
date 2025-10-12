@@ -13,6 +13,7 @@ import { Order } from '../order/entities/order.entity';
 import { Transactions } from '../wallet/entities/transaction.entity';
 import { Wallets } from '../wallet/entities/wallet.entity';
 import { RegMode } from './reg-mode.enum';
+import { RiderInfo } from './rider-info.entity';
 import { UserAddress } from './user-address';
 
 @Entity()
@@ -20,7 +21,7 @@ export class User {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column({ nullable: false, unique: true })
+  @Column({ nullable: true, unique: true })
   email: string;
 
   @Column({ nullable: false, unique: true })
@@ -74,4 +75,7 @@ export class User {
 
   @Column({ type: 'timestamptz', nullable: true })
   lastMobileUpdate: Date | null;
+
+  @OneToOne(() => RiderInfo, (riderInfo) => riderInfo.user)
+  riderInfo: RiderInfo;
 }

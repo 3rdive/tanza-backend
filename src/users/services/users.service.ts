@@ -2,18 +2,19 @@ import { BadRequestException, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import * as bcrypt from 'bcrypt';
 import { Repository } from 'typeorm';
-import { UserRegDto } from '../auth/models/user-reg.dto';
-import { Role } from '../auth/roles.enum';
-import { StandardResponse } from '../commons/standard-response';
-import { OtpService } from '../otp/services/otp.service';
-import { PasswordResetDto } from './models/password-reset.dto';
-import { PasswordUpdateDto } from './models/password-update.dto';
-import { ProfileUpdateDto } from './models/profile-update.dto';
-import { UserProfileDto } from './models/user-profile.dto';
-import { UserAddress } from './user-address';
+import { UserRegDto } from '../../auth/models/user-reg.dto';
+import { Role } from '../../auth/roles.enum';
+import { StandardResponse } from '../../commons/standard-response';
+import { OtpService } from '../../otp/services/otp.service';
+import { PasswordResetDto } from '../models/password-reset.dto';
+import { PasswordUpdateDto } from '../models/password-update.dto';
+import { ProfileUpdateDto } from '../models/profile-update.dto';
+import { UserProfileDto } from '../models/user-profile.dto';
+import { UserAddress } from '../user-address';
 import { UserDetailsService } from './user-details.service';
-import { UserMapper } from './user-mapper';
-import { User } from './user.entity';
+import { UserMapper } from '../user-mapper';
+import { User } from '../user.entity';
+import { RiderService } from './rider.service';
 
 @Injectable()
 export class UsersService {
@@ -22,6 +23,7 @@ export class UsersService {
     private readonly userRepository: Repository<User>,
     private readonly otpService: OtpService,
     private readonly userDetailsService: UserDetailsService,
+    private readonly riderService: RiderService,
   ) {}
 
   async register(
@@ -47,7 +49,13 @@ export class UsersService {
 
     const user = UserMapper.toEntity(userRegDto);
     user.role = role;
-    return this.userRepository.save(user);
+    const savedUser = await this.userRepository.save(user);
+
+    if (role == Role.RIDER) {
+      await this.riderService.initRiderInfo(savedUser.id);
+    }
+
+    return savedUser;
   }
   async updateResetPassword(user: User, passwordResetDto: PasswordResetDto) {
     await this.otpService.clearOtp(
@@ -59,7 +67,10 @@ export class UsersService {
   }
 
   async getProfile(userId: string): Promise<UserProfileDto> {
-    const user = await this.userRepository.findOne({ where: { id: userId } });
+    const user = await this.userRepository.findOne({
+      where: { id: userId },
+      relations: ['riderInfo'],
+    });
     if (!user) {
       throw new BadRequestException(StandardResponse.fail('user not found'));
     }

@@ -2,8 +2,8 @@ import { Injectable, OnApplicationBootstrap } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { UserRegDto } from './auth/models/user-reg.dto';
 import { Role } from './auth/roles.enum';
-import { UserDetailsService } from './users/user-details.service';
-import { UsersService } from './users/users.service';
+import { UserDetailsService } from './users/services/user-details.service';
+import { UsersService } from './users/services/users.service';
 
 @Injectable()
 export class OnStartUp implements OnApplicationBootstrap {

@@ -1,5 +1,6 @@
 import { UserRegDto } from '../auth/models/user-reg.dto';
 import { UserResponseDto } from '../auth/models/user-response.dto';
+import { DocumentStatus } from './document-status.enum';
 import { UserProfileDto } from './models/user-profile.dto';
 import { User } from './user.entity';
 
@@ -44,6 +45,7 @@ export class UserMapper {
       updatedAt: user.updatedAt,
       registrationMode: user.registrationMode,
       usersAddress: user.usersAddress,
+      documentStatus: user?.riderInfo?.documentStatus ?? DocumentStatus.INITIAL,
     };
   }
 }

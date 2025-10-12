@@ -6,13 +6,17 @@ import { Wallets } from '../entities/wallet.entity';
 import { VirtualAccount } from '../entities/virtual-account.entity';
 
 export class WalletMapper {
-  static mapToWalletDto(wallet: Wallets): WalletDto {
+  static mapToWalletDto(
+    wallet: Wallets,
+    totalAmountEarned?: number,
+  ): WalletDto {
     return {
       id: wallet.id,
       walletBalance: wallet.walletBalance,
       createdAt: wallet.createdAt,
       isFrozen: wallet.isFrozen,
       customerCode: wallet.customerCode,
+      ...(totalAmountEarned !== undefined && { totalAmountEarned }),
     };
   }
 

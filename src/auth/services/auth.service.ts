@@ -1,19 +1,20 @@
 import {
+  BadRequestException,
   Injectable,
   NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
+import { JwtService } from '@nestjs/jwt';
+import * as bcrypt from 'bcrypt';
 import { StandardResponse } from '../../commons/standard-response';
 import { PasswordResetDto } from '../../users/models/password-reset.dto';
 import { RegMode } from '../../users/reg-mode.enum';
-import { UserDetailsService } from '../../users/user-details.service';
+import { UserDetailsService } from '../../users/services/user-details.service';
 import { UserMapper } from '../../users/user-mapper';
-import { UsersService } from '../../users/users.service';
-import { JwtService } from '@nestjs/jwt';
+import { UsersService } from '../../users/services/users.service';
 import { UserRegDto } from '../models/user-reg.dto';
 import { UserResponseDto } from '../models/user-response.dto';
 import { Role } from '../roles.enum';
-import * as bcrypt from 'bcrypt';
 
 @Injectable()
 export class AuthService {
@@ -26,10 +27,19 @@ export class AuthService {
   async registerUser(
     userDto: UserRegDto,
   ): Promise<{ access_token: string; user?: UserResponseDto }> {
-    const hashPassword = await this.hashString(userDto.password);
-    userDto.password = hashPassword;
-    console.log(userDto);
-    const user = await this.usersService.register(userDto, Role.User);
+    if (userDto.role == Role.User) {
+      if (!userDto.email) {
+        throw new BadRequestException(
+          new StandardResponse(false, 'email is required', null),
+        );
+      } else if (!userDto.usersAddress) {
+        throw new BadRequestException(
+          new StandardResponse(false, 'userAddress is required', null),
+        );
+      }
+    }
+    userDto.password = await this.hashString(userDto.password);
+    const user = await this.usersService.register(userDto, userDto.role);
     const payload = { role: user.role, sub: user.id };
     const token = await this.jwtService.signAsync(payload);
     return {

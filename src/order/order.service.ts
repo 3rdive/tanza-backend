@@ -19,6 +19,7 @@ import { Order } from './entities/order.entity';
 import { TrackingStatus } from './entities/tracking-status.enum';
 import { UserOrderRole } from './entities/user-order-role.enum';
 import { VehicleType } from './entities/vehicle-type.enum';
+import { OrderMapper } from './mappers/order.mapper';
 
 @Injectable()
 export class OrderService {
@@ -26,14 +27,12 @@ export class OrderService {
     private readonly configService: ConfigService,
     private readonly walletService: WalletService,
     @InjectRepository(Order)
-    private readonly orderRepo: Repository<Order>,
+    private readonly orderRepository: Repository<Order>,
     @InjectRepository(OrderTracking)
     private readonly orderTrackingRepository: Repository<OrderTracking>,
     private readonly eventBus: EventBus,
     private readonly locationService: LocationService,
   ) {}
-
-  //TODO: NEXT WEEK 1). API dommy api for search location 2). API for booking order
 
   async calculateDeliveryFee(
     start: [number, number], // [lon, lat]
@@ -47,14 +46,25 @@ export class OrderService {
         vehicleType == VehicleType.BIKE ? 'cycling-regular' : 'driving-car',
       );
 
-    const chargePerKM = this.configService.get<number>('CHARGE_PER_KM', 200);
+    const bikeChargePerKM = this.configService.get<number>(
+      'RIDER_RATE_PER_KM',
+      200,
+    );
+
+    const vanChargePerKM = this.configService.get<number>(
+      'DRIVER_RATE_PER_KM',
+      200,
+    );
     const serviceChargepercent = this.configService.get<number>(
       'SERVICE_CHARGE_PERCENT',
       0,
     );
     //TODO: call map API
 
-    const deliveryFee = NumberUtil.multiply(distance_in_km, chargePerKM);
+    const deliveryFee = NumberUtil.multiply(
+      distance_in_km,
+      vehicleType == VehicleType.VAN ? vanChargePerKM : bikeChargePerKM,
+    );
     const serviceChargeAmount = NumberUtil.multiply(
       deliveryFee,
       serviceChargepercent,
@@ -81,29 +91,25 @@ export class OrderService {
     const { duration, totalAmount, serviceCharge, deliveryFee } =
       await this.calculateDeliveryFee(start, end, vehicleType);
 
-    const wallet = await this.walletService.getWallet(userId);
+    const wallet = await this.walletService.getUserWallet(userId);
     if (totalAmount > wallet.walletBalance) {
       throw new BadRequestException(
         StandardResponse.fail('insufficient balance'),
       );
     }
 
-    const order = this.orderRepo.create({
-      sender: dto.sender,
-      recipient: dto.recipient,
-      userId: userId,
-      pickUpLocation: dto.pickUpLocation,
-      dropOffLocation: dto.dropOffLocation,
-      userOrderRole: dto.userOrderRole,
-      vehicleType: dto.vehicleType,
-      noteForRider: dto.noteForRider,
-      serviceChargeAmount: serviceCharge || 0,
-      eta: duration || 'N/A',
+    const order = OrderMapper.toEntity(
+      dto,
+      userId,
+      start,
+      end,
+      serviceCharge,
+      duration,
       totalAmount,
       deliveryFee,
-    });
+    );
 
-    const saved = await this.orderRepo.save(order);
+    const saved = await this.orderRepository.save(order);
 
     await this.walletService.deductAmount(userId, totalAmount);
 
@@ -124,6 +130,13 @@ export class OrderService {
       status: TrackingStatus.PENDING,
     });
     return StandardResponse.ok(saved, 'Order created successfully');
+  }
+
+  async findOne(id: string) {
+    return this.orderRepository.findOne({
+      where: { id },
+      relations: ['orderTracking', 'transactions'],
+    });
   }
 
   validateUserInfo(dto: CreateOrderDto) {
@@ -148,15 +161,44 @@ export class OrderService {
     }
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} order`;
-  }
-
   async addOrderTracking({ orderId, note, status }: OrderTrackingDto) {
+    // Ensure the order exists
+    const order = await this.orderRepository.findOne({
+      where: { id: orderId },
+    });
+    if (!order) {
+      throw new BadRequestException(StandardResponse.fail('order not found'));
+    }
+
+    // Prevent duplicate tracking status for the same order
+    const exists = await this.orderTrackingRepository.findOne({
+      where: { orderId, status },
+    });
+    if (exists) {
+      throw new BadRequestException(
+        StandardResponse.fail(
+          'tracking with the same status already exists for this order',
+        ),
+      );
+    }
+
     const orderTracking = new OrderTracking();
     orderTracking.orderId = orderId;
     orderTracking.note = note;
     orderTracking.status = status;
     await this.orderTrackingRepository.save(orderTracking);
+  }
+
+  async removeOrderTracking(trackingId: string) {
+    const tr = await this.orderTrackingRepository.findOne({
+      where: { id: trackingId },
+    });
+    if (!tr) {
+      throw new BadRequestException(
+        StandardResponse.fail('order tracking not found'),
+      );
+    }
+    await this.orderTrackingRepository.remove(tr);
+    return { success: true };
   }
 }
