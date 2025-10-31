@@ -1,14 +1,14 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { isUUID } from 'class-validator';
-import { Repository, Between, MoreThanOrEqual, LessThanOrEqual } from 'typeorm';
-import { PaginationService } from '../../commons/pagination.service';
+import { Repository } from 'typeorm';
 import { StandardResponse } from '../../commons/standard-response';
 import { TransactionDto } from '../dto/transaction-dto';
 import { TransactionPaginationDto } from '../dto/transaction-pagination.dto';
 import { Transactions } from '../entities/transaction.entity';
 import { WalletMapper } from './wallet-mapper';
 import { TransactionMapper } from '../mappers/transaction.mapper';
+import { TransactionType } from '../entities/transaction-type.enum';
 
 @Injectable()
 export class TransactionService {
@@ -32,33 +32,75 @@ export class TransactionService {
     userId: string,
     paginationDto: TransactionPaginationDto,
   ) {
-    const where: any = { userId };
-    if (paginationDto.transactionType) {
-      where.type = paginationDto.transactionType;
-    }
-    // Add date filtering if provided
-    if (paginationDto.startDate && paginationDto.endDate) {
-      where.createdAt = Between(
-        new Date(paginationDto.startDate),
-        new Date(paginationDto.endDate),
-      );
-    } else if (paginationDto.startDate) {
-      where.createdAt = MoreThanOrEqual(new Date(paginationDto.startDate));
-    } else if (paginationDto.endDate) {
-      where.createdAt = LessThanOrEqual(new Date(paginationDto.endDate));
+    const {
+      limit = 10,
+      page = 1,
+      transactionType,
+      startDate,
+      endDate,
+    } = paginationDto;
+
+    // Base query for count and data
+    const baseQb = this.transactionRepository
+      .createQueryBuilder('t')
+      .where('t.userId = :userId', { userId });
+
+    if (transactionType) {
+      baseQb.andWhere('t.type = :type', { type: transactionType });
     }
 
-    const { data: transactions, pagination } =
-      await PaginationService.findWithPagination<Transactions>({
-        repository: this.transactionRepository,
-        paginationDto: { limit: paginationDto.limit, page: paginationDto.page },
-        where,
+    if (startDate) {
+      baseQb.andWhere('t.createdAt >= :startDate', {
+        startDate: new Date(startDate),
       });
+    }
+    if (endDate) {
+      baseQb.andWhere('t.createdAt <= :endDate', {
+        endDate: new Date(endDate),
+      });
+    }
+
+    // Total count without pagination
+    const total = await baseQb.getCount();
+
+    // Data query with computed latest order status when type is ORDER
+    const dataQb = baseQb.clone();
+
+    const latestStatusSubquery = dataQb
+      .subQuery()
+      .select('ot.status')
+      .from('order_tracking', 'ot')
+      .where('ot."orderId" = t.orderId')
+      .orderBy('ot."createdAt"', 'DESC')
+      .limit(1)
+      .getQuery();
+
+    dataQb
+      .addSelect(
+        `CASE WHEN t.type = :orderType THEN (${latestStatusSubquery}) ELSE NULL END`,
+        'orderStatus',
+      )
+      .setParameter('orderType', TransactionType.ORDER)
+      .orderBy('t.createdAt', 'DESC')
+      .skip((page - 1) * limit)
+      .take(limit);
+
+    const { raw, entities } = await dataQb.getRawAndEntities();
+
+    // Attach computed orderStatus to the corresponding entities for mapping
+    entities.forEach((entity, index) => {
+      (entity as any).orderStatus = raw[index]?.orderStatus ?? null;
+    });
 
     return StandardResponse.withPagination(
-      WalletMapper.mapListToTransactionResponse(transactions),
+      WalletMapper.mapListToTransactionResponse(entities),
       'Transactions fetched successfully',
-      pagination,
+      {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+      },
     );
   }
 

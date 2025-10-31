@@ -7,6 +7,7 @@ import { AppService } from './app.service';
 import { AuthModule } from './auth/auth.module';
 import { CommonsModule } from './commons/commons.module';
 import { RequestContextService } from './context/request-context.service';
+import { OnStartUp } from './on-startup';
 import { OtpModule } from './otp/otp.module';
 import { UsersModule } from './users/users.module';
 import { WalletModule } from './wallet/wallet.module';
@@ -14,6 +15,9 @@ import { OrderModule } from './order/order.module';
 import { UserRatingsModule } from './user-ratings/user-ratings.module';
 import { LocationModule } from './location/location.module';
 import { StorageMediaModule } from './storage-media/storage-media.module';
+import { TaskModule } from './task/task.module';
+import { NotificationModule } from './notification/notification.module';
+import { AdminModule } from './admin/admin.module';
 
 @Module({
   imports: [
@@ -50,8 +54,11 @@ import { StorageMediaModule } from './storage-media/storage-media.module';
     LocationModule,
     CqrsModule.forRoot(),
     StorageMediaModule,
+    TaskModule,
+    AdminModule,
+    NotificationModule,
   ],
   controllers: [AppController],
-  providers: [AppService, RequestContextService],
+  providers: [AppService, RequestContextService, OnStartUp],
 })
 export class AppModule {}

@@ -1,11 +1,13 @@
-import { IsEnum, IsNotEmpty } from 'class-validator';
+import { IsEnum, IsNotEmpty, IsOptional, IsString } from 'class-validator';
 import { TrackingStatus } from '../entities/tracking-status.enum';
 
 export class OrderTrackingDto {
   @IsNotEmpty()
+  @IsString()
   orderId: string;
 
-  @IsNotEmpty()
+  @IsOptional()
+  @IsString()
   note: string;
 
   @IsEnum(TrackingStatus)

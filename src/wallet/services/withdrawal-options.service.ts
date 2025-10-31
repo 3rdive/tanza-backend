@@ -21,6 +21,16 @@ export class WithdrawalOptionsService {
     // ensure rider exists
     await this.userDetailsService.findOneOrThrow(riderId);
 
+    // prevent adding duplicate withdrawal option for the same rider
+    const duplicate = await this.withdrawalOptionsRepository.findOne({
+      where: { riderId },
+    });
+    if (duplicate) {
+      throw new BadRequestException(
+        StandardResponse.fail('withdrawal option already exists'),
+      );
+    }
+
     // Determine if this should be default (first option for rider)
     const existing = await this.withdrawalOptionsRepository.count({
       where: { riderId },
@@ -31,6 +41,7 @@ export class WithdrawalOptionsService {
       accountNumber: dto.accountNumber,
       bankHoldersName: dto.bankHoldersName,
       isDefault: existing === 0,
+      slug: dto.slug,
     });
     return this.withdrawalOptionsRepository.save(entity);
   }

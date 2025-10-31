@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { ActiveStatus } from '../actvie-status.entity';
+import { ActiveStatus } from '../active-status.entity';
 
 export type ActiveStatusType = 'active' | 'inactive';
 
@@ -52,7 +52,8 @@ export class ActiveStatusService {
     if (payload.latitude !== undefined) record.latitude = payload.latitude;
     if (payload.longitude !== undefined) record.longitude = payload.longitude;
 
-    return this.activeStatusRepository.save(record);
+    const saved = await this.activeStatusRepository.save(record);
+    return saved;
   }
 
   async getByUserId(userId: string): Promise<ActiveStatus | null> {

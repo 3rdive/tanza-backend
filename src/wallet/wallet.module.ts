@@ -5,8 +5,10 @@ import { UsersModule } from '../users/users.module';
 import { PayStackWebhookController } from './controllers/pay-stack-webhook.controller';
 import { TransactionController } from './controllers/transaction.controller';
 import { WalletController } from './controllers/wallet.controller';
+import { BankController } from './controllers/bank.controller';
 import { CreateTransactionEventHandler } from './events/handler/create-transaction-event.handler';
 import { PayStackService } from './services/pay-stack.service';
+import { BankService } from './services/bank.service';
 import { Transactions } from './entities/transaction.entity';
 import { VirtualAccount } from './entities/virtual-account.entity';
 import { Wallets } from './entities/wallet.entity';
@@ -33,13 +35,15 @@ import { WithdrawalOptionsController } from './controllers/withdrawal-options.co
     TransactionService,
     CreateTransactionEventHandler,
     WithdrawalOptionsService,
+    BankService,
   ],
   controllers: [
     WalletController,
     PayStackWebhookController,
     TransactionController,
     WithdrawalOptionsController,
+    BankController,
   ],
-  exports: [WalletService],
+  exports: [WalletService, BankService],
 })
 export class WalletModule {}

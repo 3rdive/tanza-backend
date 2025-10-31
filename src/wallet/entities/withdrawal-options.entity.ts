@@ -3,10 +3,12 @@ import {
   CreateDateColumn,
   Entity,
   PrimaryGeneratedColumn,
+  Unique,
   UpdateDateColumn,
 } from 'typeorm';
 
 @Entity()
+@Unique(['riderId', 'accountNumber', 'bankName'])
 export class WithdrawalOptions {
   @PrimaryGeneratedColumn('uuid')
   id: string;
@@ -16,6 +18,9 @@ export class WithdrawalOptions {
 
   @Column()
   bankName: string;
+
+  @Column({ nullable: true })
+  slug: string;
 
   @Column()
   accountNumber: string;

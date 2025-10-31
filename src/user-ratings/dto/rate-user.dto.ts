@@ -1,15 +1,19 @@
 import { IsUUID, IsInt, Min, Max, IsOptional, IsString } from 'class-validator';
 
-export class RateRiderDto {
+export class RateUserDto {
   @IsUUID()
-  riderId: string;
+  targetUserId: string;
 
   @IsInt()
   @Min(1)
   @Max(5)
-  score: number;
+  starRating: number;
 
   @IsOptional()
   @IsString()
   comment?: string;
+
+  @IsOptional()
+  @IsString()
+  orderId?: string;
 }

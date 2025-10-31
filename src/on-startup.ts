@@ -2,14 +2,14 @@ import { Injectable, OnApplicationBootstrap } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { UserRegDto } from './auth/models/user-reg.dto';
 import { Role } from './auth/roles.enum';
+import { RegisterUseCase } from './users/services/register.usecase';
 import { UserDetailsService } from './users/services/user-details.service';
-import { UsersService } from './users/services/users.service';
 
 @Injectable()
 export class OnStartUp implements OnApplicationBootstrap {
   constructor(
     private readonly userDetailsService: UserDetailsService,
-    private readonly userService: UsersService,
+    private readonly registerUseCase: RegisterUseCase,
     private readonly configService: ConfigService,
   ) {}
   async onApplicationBootstrap() {
@@ -32,7 +32,7 @@ export class OnStartUp implements OnApplicationBootstrap {
       userDto.countryCode = '+234';
       userDto.firstName = 'Abey';
       userDto.lastName = 'Samuel';
-      await this.userService.register(userDto, Role.Admin);
+      await this.registerUseCase.execute(userDto, Role.Admin);
       console.log('default admin registered successfully');
     }
   }

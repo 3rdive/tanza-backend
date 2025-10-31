@@ -9,6 +9,7 @@ import * as bcrypt from 'bcrypt';
 import { StandardResponse } from '../../commons/standard-response';
 import { PasswordResetDto } from '../../users/models/password-reset.dto';
 import { RegMode } from '../../users/reg-mode.enum';
+import { RegisterUseCase } from '../../users/services/register.usecase';
 import { UserDetailsService } from '../../users/services/user-details.service';
 import { UserMapper } from '../../users/user-mapper';
 import { UsersService } from '../../users/services/users.service';
@@ -20,6 +21,7 @@ import { Role } from '../roles.enum';
 export class AuthService {
   constructor(
     private usersService: UsersService,
+    private registerUseCase: RegisterUseCase,
     private userDetailsService: UserDetailsService,
     private jwtService: JwtService,
   ) {}
@@ -39,7 +41,7 @@ export class AuthService {
       }
     }
     userDto.password = await this.hashString(userDto.password);
-    const user = await this.usersService.register(userDto, userDto.role);
+    const user = await this.registerUseCase.execute(userDto, userDto.role);
     const payload = { role: user.role, sub: user.id };
     const token = await this.jwtService.signAsync(payload);
     return {
@@ -65,7 +67,7 @@ export class AuthService {
     });
     if (!isPasswordMatch) {
       throw new UnauthorizedException(
-        StandardResponse.fail('User name or password is incorrect'),
+        StandardResponse.fail('password is incorrect'),
       );
     }
 

@@ -11,4 +11,6 @@ export const BaseUrl = {
   LOCATION: 'api/v1/location',
   ORDER: 'api/v1/order',
   STORAGE: 'api/v1/storage-media',
+  TASK: 'api/v1/task',
+  NOTIFICATION: 'api/v1/notification',
 };

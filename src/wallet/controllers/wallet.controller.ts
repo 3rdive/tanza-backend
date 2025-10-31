@@ -1,15 +1,11 @@
-import {
-  BadRequestException,
-  Body,
-  Controller,
-  Get,
-  Post,
-} from '@nestjs/common';
+import { Body, Controller, Get, Post } from '@nestjs/common';
 import { JwtPayload } from '../../auth/models/jwt-payload.type';
 import { BaseUrl } from '../../constants';
 import { CurrentUser } from '../../users/user.decorator';
 import { WalletService } from '../services/wallet.service';
 import { FundWalletDto } from '../models/fund-wallet.dto';
+import { Roles } from '../../auth/roles.decorator';
+import { Role } from '../../auth/roles.enum';
 
 @Controller(BaseUrl.WALLET)
 export class WalletController {
@@ -17,17 +13,17 @@ export class WalletController {
 
   @Get()
   async getWallet(@CurrentUser() user: JwtPayload) {
-    if (!user) {
-      throw new BadRequestException('Unauthorized');
-    }
     return this.walletService.getUserWallet(user.sub);
+  }
+
+  @Roles(Role.RIDER)
+  @Get('rider')
+  async getRiderWallet(@CurrentUser() user: JwtPayload) {
+    return this.walletService.getRiderWallet(user.sub);
   }
 
   @Get('virtual-account')
   async getVirtualAccount(@CurrentUser() user: JwtPayload) {
-    if (!user) {
-      throw new BadRequestException('Unauthorized');
-    }
     return this.walletService.getVirtualAccount(user.sub);
   }
 
@@ -36,6 +32,4 @@ export class WalletController {
     const { customerCode, transactionReference } = dto;
     return this.walletService.fundWallet(customerCode, transactionReference);
   }
-
-  //todo endpoint to get riders wallet
 }

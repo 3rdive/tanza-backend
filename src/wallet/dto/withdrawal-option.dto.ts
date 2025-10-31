@@ -7,6 +7,10 @@ export class CreateWithdrawalOptionDto {
 
   @IsString()
   @IsNotEmpty()
+  slug: string;
+
+  @IsString()
+  @IsNotEmpty()
   accountNumber: string;
 
   @IsString()
@@ -18,6 +22,10 @@ export class UpdateWithdrawalOptionDto {
   @IsString()
   @IsOptional()
   bankName?: string;
+
+  @IsString()
+  @IsOptional()
+  slug?: string;
 
   @IsString()
   @IsOptional()

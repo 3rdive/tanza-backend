@@ -38,7 +38,9 @@
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.1",
     "twilio": "^5.8.0",
-    "typeorm": "^0.3.26"
+    "typeorm": "^0.3.26",
+    "@nestjs/platform-socket.io": "^11.1.7",
+    "@nestjs/websockets": "^11.1.7"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3.2.0",

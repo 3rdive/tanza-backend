@@ -1,4 +1,5 @@
 import { TransactionResponse } from '../dto/transaction.response';
+import { TrackingStatus } from '../../order/entities/tracking-status.enum';
 import { WalletDto } from '../dto/wallet.dto';
 import { VirtualAccountDto } from '../dto/virtual-account.dto';
 import { Transactions } from '../entities/transaction.entity';
@@ -33,6 +34,10 @@ export class WalletMapper {
   static mapToTransactionResponse(
     transactions: Transactions,
   ): TransactionResponse {
+    const orderStatus = (transactions as any).orderStatus as
+      | TrackingStatus
+      | null
+      | undefined;
     return {
       id: transactions.id,
       amount: transactions.amount,
@@ -41,6 +46,7 @@ export class WalletMapper {
       orderId: transactions.orderId,
       description: transactions.description,
       status: transactions.status,
+      ...(orderStatus !== undefined ? { orderStatus } : {}),
     };
   }
 

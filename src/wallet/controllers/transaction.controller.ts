@@ -8,7 +8,6 @@ import {
 import { JwtPayload } from '../../auth/models/jwt-payload.type';
 import { BaseUrl } from '../../constants';
 import { CurrentUser } from '../../users/user.decorator';
-import { PaginationDto } from '../../commons/pagination.dto';
 import { TransactionPaginationDto } from '../dto/transaction-pagination.dto';
 import { TransactionService } from '../services/transaction.service';
 

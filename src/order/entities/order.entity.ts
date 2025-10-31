@@ -14,6 +14,7 @@ import { UserInfo } from './user-info';
 import { UserOrderRole } from './user-order-role.enum';
 import { VehicleType } from './vehicle-type.enum';
 import { OrderLocation } from '../dto/order-location';
+import { DecimalToNumberTransformer } from '../../common/transformers/decimal.transformer';
 
 @Entity()
 export class Order {
@@ -44,13 +45,28 @@ export class Order {
   @Column({ nullable: true })
   noteForRider: string;
 
-  @Column({ type: 'decimal', precision: 10, scale: 2 })
+  @Column({
+    type: 'decimal',
+    precision: 10,
+    scale: 2,
+    transformer: new DecimalToNumberTransformer(),
+  })
   serviceChargeAmount: number;
 
-  @Column({ type: 'decimal', precision: 10, scale: 2 })
+  @Column({
+    type: 'decimal',
+    precision: 10,
+    scale: 2,
+    transformer: new DecimalToNumberTransformer(),
+  })
   deliveryFee: number;
 
-  @Column({ type: 'decimal', precision: 12, scale: 2 })
+  @Column({
+    type: 'decimal',
+    precision: 12,
+    scale: 2,
+    transformer: new DecimalToNumberTransformer(),
+  })
   totalAmount: number;
 
   @OneToMany(() => OrderTracking, (orderTracking) => orderTracking.order)
@@ -70,4 +86,34 @@ export class Order {
 
   @UpdateDateColumn()
   updatedAt: Date;
+
+  @Column({ nullable: true })
+  riderId: string;
+
+  @ManyToOne(() => User, (user) => user.riderOrders)
+  rider: User;
+
+  @Column({ default: false })
+  riderAssigned: boolean;
+
+  @Column({ nullable: true })
+  riderAssignedAt: Date;
+
+  @Column({ default: false })
+  hasRewardedRider: boolean;
+
+  @Column({ type: 'jsonb', nullable: true, default: [] })
+  declinedRiderIds: string[];
+
+  @Column({
+    type: 'decimal',
+    precision: 10,
+    scale: 4,
+    transformer: new DecimalToNumberTransformer(),
+    nullable: true,
+  })
+  distanceInKm: number;
+
+  @Column({ default: false })
+  isUrgent: boolean;
 }

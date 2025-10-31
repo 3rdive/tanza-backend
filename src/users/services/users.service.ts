@@ -1,9 +1,12 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  Inject,
+  forwardRef,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import * as bcrypt from 'bcrypt';
 import { Repository } from 'typeorm';
-import { UserRegDto } from '../../auth/models/user-reg.dto';
-import { Role } from '../../auth/roles.enum';
 import { StandardResponse } from '../../commons/standard-response';
 import { OtpService } from '../../otp/services/otp.service';
 import { PasswordResetDto } from '../models/password-reset.dto';
@@ -11,52 +14,18 @@ import { PasswordUpdateDto } from '../models/password-update.dto';
 import { ProfileUpdateDto } from '../models/profile-update.dto';
 import { UserProfileDto } from '../models/user-profile.dto';
 import { UserAddress } from '../user-address';
-import { UserDetailsService } from './user-details.service';
 import { UserMapper } from '../user-mapper';
 import { User } from '../user.entity';
-import { RiderService } from './rider.service';
 
 @Injectable()
 export class UsersService {
   constructor(
     @InjectRepository(User)
     private readonly userRepository: Repository<User>,
+    @Inject(forwardRef(() => OtpService))
     private readonly otpService: OtpService,
-    private readonly userDetailsService: UserDetailsService,
-    private readonly riderService: RiderService,
   ) {}
 
-  async register(
-    userRegDto: UserRegDto,
-    role: Role,
-    defaultAdmin: boolean = false,
-  ): Promise<User> {
-    const existingUserWithEmailOrMobile =
-      await this.userDetailsService.findByEmailAndMobile(
-        userRegDto.email,
-        userRegDto.mobile,
-      );
-
-    if (existingUserWithEmailOrMobile) {
-      throw new BadRequestException(
-        StandardResponse.fail('Username already exists'),
-      );
-    }
-
-    if (!defaultAdmin) {
-      await this.otpService.clearOtp(userRegDto.mobile, userRegDto.otp);
-    }
-
-    const user = UserMapper.toEntity(userRegDto);
-    user.role = role;
-    const savedUser = await this.userRepository.save(user);
-
-    if (role == Role.RIDER) {
-      await this.riderService.initRiderInfo(savedUser.id);
-    }
-
-    return savedUser;
-  }
   async updateResetPassword(user: User, passwordResetDto: PasswordResetDto) {
     await this.otpService.clearOtp(
       passwordResetDto.reference,

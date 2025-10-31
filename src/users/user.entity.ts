@@ -67,6 +67,10 @@ export class User {
   @OneToMany(() => Order, (order) => order.user)
   orders: Order[];
 
+  //for riders
+  @OneToMany(() => Order, (order) => order.rider)
+  riderOrders: Order[];
+
   @Column({ type: 'enum', enum: RegMode, default: RegMode.MANUAL })
   registrationMode: RegMode;
 

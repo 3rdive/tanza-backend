@@ -161,16 +161,22 @@ export class LocationService {
         geometry: route.geometry, // polyline for map if needed
       };
     } catch (err) {
-      const e = err as AxiosError;
-      const msg = e.response?.data
-        ? JSON.stringify(e.response.data)
-        : e.message;
-      console.error('OpenRouteService error:', msg);
-      throw new BadRequestException(
-        StandardResponse.fail(
-          'Error Calculation Distance, please try another location.',
-        ),
+      const e = err as AxiosError<any>;
+      // Log the detailed provider error for observability
+      const raw = e.response?.data ?? e.message;
+      console.error(
+        'OpenRouteService error:',
+        typeof raw === 'string' ? raw : JSON.stringify(raw),
       );
+
+      // Map known ORS error codes to a friendly message
+      const orsCode: number | undefined = e?.response?.data?.error?.code;
+      const friendlyMessage =
+        orsCode === 2010
+          ? 'No nearby road found for one of the locations. Please select a location closer to a road and try again.'
+          : 'We could not calculate a route for those locations. Please try a nearby point and try again.';
+
+      throw new BadRequestException(StandardResponse.fail(friendlyMessage));
     }
   }
 

@@ -11,6 +11,7 @@ import { User } from '../../users/user.entity';
 import { TransactionStatus } from '../dto/transaction-status';
 import { TransactionType } from './transaction-type.enum';
 import { Wallets } from './wallet.entity';
+import { DecimalToNumberTransformer } from '../../common/transformers/decimal.transformer';
 
 @Entity()
 export class Transactions {
@@ -29,7 +30,7 @@ export class Transactions {
   @ManyToOne(() => User, (user) => user.transactions)
   user: User;
 
-  @Column({ type: 'decimal', precision: 12, scale: 2, default: 0 })
+  @Column({ type: 'decimal', precision: 12, scale: 2, default: 0, transformer: new DecimalToNumberTransformer() })
   amount: number;
 
   @Column()

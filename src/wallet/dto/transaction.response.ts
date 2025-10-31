@@ -1,5 +1,6 @@
 import { TransactionType } from '../entities/transaction-type.enum';
 import { TransactionStatus } from './transaction-status';
+import { TrackingStatus } from '../../order/entities/tracking-status.enum';
 
 export class TransactionResponse {
   id: string;
@@ -9,4 +10,6 @@ export class TransactionResponse {
   orderId: string | null;
   description: string;
   status: TransactionStatus;
+  // Last order tracking status when type is ORDER; otherwise null
+  orderStatus?: TrackingStatus | null;
 }

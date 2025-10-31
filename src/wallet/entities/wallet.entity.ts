@@ -11,6 +11,7 @@ import {
 import { User } from '../../users/user.entity';
 import { Transactions } from './transaction.entity';
 import { VirtualAccount } from './virtual-account.entity';
+import { DecimalToNumberTransformer } from '../../common/transformers/decimal.transformer';
 
 @Entity()
 export class Wallets {
@@ -24,13 +25,13 @@ export class Wallets {
   user: User;
 
   //DO NOT UPDATE without migration script
-  @Column({ type: 'decimal', precision: 12, scale: 2, default: 0 })
+  @Column({ type: 'decimal', precision: 12, scale: 2, default: 0, transformer: new DecimalToNumberTransformer() })
   walletBalance: number;
 
   @OneToMany(() => Transactions, (transaction) => transaction.wallet)
   transactions: Transactions[];
 
-  @Column()
+  @Column({ nullable: true })
   virtualAccountId: string;
 
   @OneToOne(() => VirtualAccount)
@@ -43,7 +44,7 @@ export class Wallets {
   @UpdateDateColumn()
   updatedAt: Date;
 
-  @Column()
+  @Column({ nullable: true })
   customerCode: string;
 
   @Column({ default: false })

@@ -3,32 +3,24 @@ import {
   CreateDateColumn,
   Entity,
   Index,
-  ManyToOne,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
-import { User } from '../../users/user.entity';
 
 @Entity()
-@Index(['raterId', 'riderId'], { unique: true })
+@Index(['reviewerId', 'targetUserId'], { unique: true })
 export class UserRating {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column()
-  raterId: string;
+  @Column({ nullable: true })
+  reviewerId: string; // User who gives the rating
 
-  @ManyToOne(() => User, { onDelete: 'CASCADE' })
-  rater: User;
+  @Column({ nullable: true })
+  targetUserId: string; // User who receives the rating
 
-  @Column()
-  riderId: string;
-
-  @ManyToOne(() => User, { onDelete: 'CASCADE' })
-  rider: User;
-
-  @Column({ type: 'int' })
-  score: number; // 1 - 5
+  @Column({ type: 'int', nullable: true })
+  starRating: number; // 1 - 5
 
   @Column({ type: 'text', nullable: true })
   comment?: string | null;

@@ -2,7 +2,6 @@ import { BadRequestException, Injectable } from '@nestjs/common';
 import { EventBus } from '@nestjs/cqrs';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { NumberUtil } from '../../commons/number.util';
 import { StandardResponse } from '../../commons/standard-response';
 import { UserDetailsService } from '../../users/services/user-details.service';
 import { TransactionDto } from '../dto/transaction-dto';
@@ -15,6 +14,7 @@ import { PayStackService } from './pay-stack.service';
 import { TransactionService } from './transaction.service';
 import { WalletMapper } from './wallet-mapper';
 import { Role } from '../../auth/roles.enum';
+import { CreateNotficationEvent } from '../../notification/create-notification.event';
 
 @Injectable()
 export class WalletService {
@@ -34,16 +34,16 @@ export class WalletService {
     if (!wallet) {
       throw new BadRequestException(StandardResponse.fail('wallet not found'));
     }
-    wallet.walletBalance = NumberUtil.add(wallet.walletBalance, amount);
+    wallet.walletBalance = wallet.walletBalance + amount;
     await this.walletRepository.save(wallet);
   }
 
   async initialiseWallet(userId: string, role = Role.User) {
     const user = await this.userDetailsService.findOneOrThrow(userId);
 
-    let dva;
-    let virtualAccount;
-    if (role !== Role.User) {
+    let dva: any;
+    let virtualAccount: VirtualAccount | undefined;
+    if (role === Role.User) {
       dva = await this.payStackService.createWalletForUser(
         userId,
         user.email,
@@ -64,6 +64,7 @@ export class WalletService {
       userId: userId,
       virtualAccountId: virtualAccount?.id,
       customerCode: dva?.customerCode,
+      walletBalance: 0,
     });
     await this.walletRepository.save(wallet);
 
@@ -76,7 +77,7 @@ export class WalletService {
     });
 
     if (!wallet) {
-      wallet = await this.initialiseWallet(userId);
+      wallet = await this.initialiseWallet(userId, Role.RIDER);
     }
 
     return WalletMapper.mapToWalletDto(wallet);
@@ -91,10 +92,7 @@ export class WalletService {
       wallet = await this.initialiseWallet(userId, Role.RIDER);
     }
 
-    const totalAmountEarned =
-      await this.transactionService.getTotalEarnings(userId);
-
-    return WalletMapper.mapToWalletDto(wallet, totalAmountEarned);
+    return WalletMapper.mapToWalletDto(wallet);
   }
 
   async getVirtualAccount(userId: string) {
@@ -153,10 +151,7 @@ export class WalletService {
         );
         return 'Payment Verification Failed. Transaction already exists';
       }
-      wallet.walletBalance = NumberUtil.add(
-        wallet.walletBalance,
-        creditedAmount,
-      );
+      wallet.walletBalance = wallet.walletBalance + creditedAmount;
       await this.walletRepository.save(wallet);
 
       const trn = new TransactionDto();
@@ -173,9 +168,28 @@ export class WalletService {
         `Wallet credited: ${customerCode} +₦${creditedAmount} (ref: ${transactionReference})`,
       );
 
+      this.eventBus.publish(
+        new CreateNotficationEvent(
+          'Wallet Funded',
+          `Your wallet has been credited with ₦${creditedAmount}`,
+          wallet.userId,
+          '/wallet',
+        ),
+      );
+
       return 'payment successful';
     } else {
       return 'Payment Verification Failed. Please contact support account not funded';
     }
+  }
+
+  async saveWallet(wallet: Wallets) {
+    return await this.walletRepository.save(wallet);
+  }
+
+  async findWalletByUserId(userId: string) {
+    return await this.walletRepository.findOne({
+      where: { userId },
+    });
   }
 }

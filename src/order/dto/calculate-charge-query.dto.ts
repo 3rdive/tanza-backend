@@ -1,5 +1,12 @@
-import { Type } from 'class-transformer';
-import { IsDefined, IsEnum, IsNotEmpty, IsNumber } from 'class-validator';
+import { Type, Transform } from 'class-transformer';
+import {
+  IsDefined,
+  IsEnum,
+  IsNotEmpty,
+  IsNumber,
+  IsOptional,
+  IsBoolean,
+} from 'class-validator';
 import { VehicleType } from '../entities/vehicle-type.enum';
 
 export class CalculateChargeQueryDto {
@@ -31,4 +38,9 @@ export class CalculateChargeQueryDto {
   @IsNotEmpty()
   @IsEnum(VehicleType)
   vehicleType!: VehicleType;
+
+  @IsOptional()
+  @IsBoolean()
+  @Transform(({ value }) => value === 'true' || value === true)
+  isUrgent?: boolean;
 }
