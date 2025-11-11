@@ -16,6 +16,8 @@ import { FilterTaskDto } from './dto/filter-task.dto';
 import { StandardResponse } from '../commons/standard-response';
 import { Tasks } from './task.entity';
 import { BaseUrl } from '../constants';
+import { CurrentUser } from 'src/users/user.decorator';
+import { JwtPayload } from 'src/auth/models/jwt-payload.type';
 
 @Controller(BaseUrl.TASK)
 export class TaskController {
@@ -29,8 +31,11 @@ export class TaskController {
   }
 
   @Get()
-  findAll(@Query() filterDto: FilterTaskDto): Promise<StandardResponse<Tasks>> {
-    return this.taskService.findAll(filterDto);
+  findAll(
+    @Query() filterDto: FilterTaskDto,
+    @CurrentUser() user: JwtPayload,
+  ): Promise<StandardResponse<Tasks>> {
+    return this.taskService.findAll(filterDto, user.sub);
   }
 
   @Get(':id')

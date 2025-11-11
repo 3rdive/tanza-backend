@@ -32,7 +32,7 @@ export class OnStartUp implements OnApplicationBootstrap {
       userDto.countryCode = '+234';
       userDto.firstName = 'Abey';
       userDto.lastName = 'Samuel';
-      await this.registerUseCase.execute(userDto, Role.Admin);
+      await this.registerUseCase.execute(userDto, Role.Admin, true);
       console.log('default admin registered successfully');
     }
   }

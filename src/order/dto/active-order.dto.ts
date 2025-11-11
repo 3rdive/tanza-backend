@@ -12,6 +12,8 @@ export class ActiveOrder {
   orderTracking: OrderTrackingDto[];
   note: string;
   amount: number;
+  eta: string | null;
+  createdAt: Date;
 }
 
 export class OrderTrackingDto {

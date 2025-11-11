@@ -19,20 +19,24 @@ import { CreateOrderDto } from './dto/create-order.dto';
 import { OrderTrackingDto } from './dto/order-tracking.dto';
 import { RiderFeedbackDto } from './dto/rider-feedback.dto';
 import { OrderService } from './order.service';
+import { CalculateDeliveryChargesUsecase } from './usecasses/calculate-delivery-charges.usecase';
 
 @Controller(BaseUrl.ORDER)
 export class OrderController {
-  constructor(private readonly orderService: OrderService) {}
+  constructor(
+    private readonly orderService: OrderService,
+    private readonly calculateDeliveryChargesUsecase: CalculateDeliveryChargesUsecase,
+  ) {}
 
   @Get('calculate-charge')
   async calculateDistance(@Query() query: CalculateChargeQueryDto) {
-    const { startLat, startLon, endLat, endLon, vehicleType, isUrgent } = query;
+    const { startLat, startLon, endLat, endLon, isUrgent, urgencyFee } = query;
 
-    return this.orderService.calculateDeliveryFee(
+    return this.calculateDeliveryChargesUsecase.calculateDeliveryFee(
       [startLon, startLat], //  [lon, lat]
       [endLon, endLat],
-      vehicleType,
       isUrgent || false,
+      urgencyFee!,
     );
   }
 
@@ -42,14 +46,14 @@ export class OrderController {
     @Query() query: CalculateChargeQueryDto,
     @CurrentUser() user: JwtPayload,
   ) {
-    const { startLat, startLon, endLat, endLon, vehicleType, isUrgent } = query;
+    const { startLat, startLon, endLat, endLon, isUrgent, urgencyFee } = query;
     return this.orderService.createOrder(
       user.sub,
       dto,
       [startLon, startLat],
       [endLon, endLat],
-      vehicleType,
       isUrgent || false,
+      urgencyFee!,
     );
   }
 

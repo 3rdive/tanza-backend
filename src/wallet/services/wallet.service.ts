@@ -27,7 +27,7 @@ export class WalletService {
     private readonly payStackService: PayStackService,
     private readonly transactionService: TransactionService,
     private readonly eventBus: EventBus,
-  ) {}
+  ) { }
 
   async deductAmount(userId: string, amount: number) {
     const wallet = await this.walletRepository.findOne({ where: { userId } });
@@ -50,7 +50,7 @@ export class WalletService {
         user.firstName,
         user.lastName,
       );
-      const virtualAccount = this.virtualAccountRepository.create({
+      virtualAccount = this.virtualAccountRepository.create({
         userId,
         customerCode: dva.customerCode,
         accountNumber: dva.accountNumber,
@@ -77,7 +77,7 @@ export class WalletService {
     });
 
     if (!wallet) {
-      wallet = await this.initialiseWallet(userId, Role.RIDER);
+      wallet = await this.initialiseWallet(userId, Role.User);
     }
 
     return WalletMapper.mapToWalletDto(wallet);

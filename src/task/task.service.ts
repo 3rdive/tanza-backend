@@ -8,6 +8,7 @@ import { FilterTaskDto } from './dto/filter-task.dto';
 import { StandardResponse } from '../commons/standard-response';
 import { TaskStatus } from './task-status.enum';
 import { UsersService } from '../users/services/users.service';
+import { TaskGateway } from './task.gateway';
 
 @Injectable()
 export class TaskService {
@@ -15,10 +16,12 @@ export class TaskService {
     @InjectRepository(Tasks)
     private taskRepository: Repository<Tasks>,
     private readonly userService: UsersService,
+    private readonly taskGateway: TaskGateway,
   ) {}
 
   async create(createTaskDto: CreateTaskDto): Promise<StandardResponse<Tasks>> {
     try {
+      //get target user profile
       const user = await this.userService.getProfile(createTaskDto.reference);
       const task = this.taskRepository.create({
         ...createTaskDto,
@@ -30,6 +33,7 @@ export class TaskService {
         }),
       });
       const savedTask = await this.taskRepository.save(task);
+      this.taskGateway.broadcastNewTask(task.userId, savedTask);
       return StandardResponse.ok(savedTask, 'Task created successfully');
     } catch (e) {
       console.log('error creating task: ', e);
@@ -37,9 +41,12 @@ export class TaskService {
     }
   }
 
-  async findAll(filterDto: FilterTaskDto): Promise<StandardResponse<Tasks>> {
+  async findAll(
+    filterDto: FilterTaskDto,
+    userId: string,
+  ): Promise<StandardResponse<Tasks>> {
     try {
-      const { page = 1, limit = 10, category, status, userId } = filterDto;
+      const { page = 1, limit = 10, category, status } = filterDto;
       const skip = (page - 1) * limit;
 
       const query = this.taskRepository.createQueryBuilder('task');

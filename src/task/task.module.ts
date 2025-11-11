@@ -5,10 +5,12 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { Tasks } from './task.entity';
 import { CreateTaskEventHandler } from './create-task-event.handler';
 import { UsersModule } from '../users/users.module';
+import { TaskGateway } from './task.gateway';
+import { JwtModule } from '@nestjs/jwt';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Tasks]), UsersModule],
-  providers: [TaskService, CreateTaskEventHandler],
+  imports: [TypeOrmModule.forFeature([Tasks]), UsersModule, JwtModule],
+  providers: [TaskService, CreateTaskEventHandler, TaskGateway],
   controllers: [TaskController],
 })
 export class TaskModule {}

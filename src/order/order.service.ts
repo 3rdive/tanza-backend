@@ -11,10 +11,8 @@ import {
   QueryRunner,
 } from 'typeorm';
 import { v4 as uuid } from 'uuid';
-import { NumberUtil } from '../commons/number.util';
 import { PaginationService } from '../commons/pagination.service';
 import { StandardResponse } from '../commons/standard-response';
-import { LocationService } from '../location/location.service';
 import { RiderService } from '../users/services/rider.service';
 import { OrderRiderPaginationDto } from '../wallet/dto/OrderRiderPaginationDto';
 import { TransactionDto } from '../wallet/dto/transaction-dto';
@@ -29,9 +27,7 @@ import { OrderTracking } from './entities/order-tracking.entity';
 import { Order } from './entities/order.entity';
 import { Wallets } from '../wallet/entities/wallet.entity';
 import { TrackingStatus } from './entities/tracking-status.enum';
-import { VehicleType } from './entities/vehicle-type.enum';
 import { OrderMapper } from './mappers/order.mapper';
-import { DeliveryFeeResult } from './dto/delivery-fee-result.dto';
 import { OrderPreview } from './dto/order-preview';
 import { normalizeDateRange } from './order-functions';
 import { CreateNotficationEvent } from '../notification/create-notification.event';
@@ -40,6 +36,7 @@ import { RiderFeedbackDto } from './dto/rider-feedback.dto';
 import { RiderGateway } from './riders.gateway';
 import { CreateTaskEvent } from '../task/create-task.event';
 import { TaskCategory } from '../task/task-category.enum';
+import { CalculateDeliveryChargesUsecase } from './usecasses/calculate-delivery-charges.usecase';
 
 @Injectable()
 export class OrderService {
@@ -60,82 +57,29 @@ export class OrderService {
     @InjectRepository(OrderTracking)
     private readonly orderTrackingRepository: Repository<OrderTracking>,
     private readonly eventBus: EventBus,
-    private readonly locationService: LocationService,
+    private readonly calculateDeliveryChargesUsecase: CalculateDeliveryChargesUsecase,
     private readonly riderService: RiderService,
     private readonly dataSource: DataSource,
     private readonly riderGateway: RiderGateway,
   ) {}
-
-  async calculateDeliveryFee(
-    start: [number, number], // [lon, lat]
-    end: [number, number],
-    vehicleType: VehicleType,
-    isUrgent: boolean = false,
-  ): Promise<DeliveryFeeResult> {
-    const { distance_in_km, duration_in_words } =
-      await this.locationService.calculateDistance(
-        start,
-        end,
-        vehicleType == VehicleType.BIKE ? 'cycling-regular' : 'driving-car',
-      );
-
-    const bikeChargePerKM = this.configService.get<number>(
-      'RIDER_RATE_PER_KM',
-      200,
-    );
-
-    const vanChargePerKM = this.configService.get<number>(
-      'DRIVER_RATE_PER_KM',
-      200,
-    );
-    const serviceChargepercent = this.configService.get<number>(
-      'SERVICE_CHARGE_PERCENT',
-      0,
-    );
-    const urgentRiderFeePercent = this.configService.get<number>(
-      'URGENT_RIDER_FEE',
-      0,
-    );
-    // Distance already calculated via map API above
-
-    let deliveryFee = NumberUtil.multiply(
-      distance_in_km,
-      vehicleType == VehicleType.VAN ? vanChargePerKM : bikeChargePerKM,
-    );
-
-    // Add urgent fee if order is urgent
-    if (isUrgent) {
-      const urgentFee = NumberUtil.multiply(deliveryFee, urgentRiderFeePercent);
-      deliveryFee = NumberUtil.add(deliveryFee, urgentFee);
-    }
-
-    const serviceChargeAmount = NumberUtil.multiply(
-      deliveryFee,
-      serviceChargepercent,
-    );
-    const totalAmount = NumberUtil.add(serviceChargeAmount, deliveryFee);
-
-    return {
-      totalAmount: totalAmount,
-      deliveryFee: deliveryFee,
-      serviceCharge: serviceChargeAmount,
-      duration: duration_in_words,
-      distanceInKm: distance_in_km,
-    };
-  }
 
   async createOrder(
     userId: string,
     dto: CreateOrderDto,
     start: [number, number], //[lon, lat]
     end: [number, number], // [lon, lat]
-    vehicleType: VehicleType,
     isUrgent: boolean = false,
+    urgencyFee: number,
   ): Promise<StandardResponse<Order>> {
     // validateUserInfo(dto);
 
     const { duration, totalAmount, serviceCharge, deliveryFee, distanceInKm } =
-      await this.calculateDeliveryFee(start, end, vehicleType, isUrgent);
+      await this.calculateDeliveryChargesUsecase.calculateDeliveryFee(
+        start,
+        end,
+        isUrgent,
+        urgencyFee,
+      );
 
     const walletDto = await this.walletService.getUserWallet(userId);
     if (totalAmount > walletDto.walletBalance) {
@@ -579,14 +523,12 @@ export class OrderService {
         ),
       );
 
-      this.eventBus.publishAll([
+      this.eventBus.publish(
         new CreateTaskEvent(TaskCategory.REQUEST_REVIEW, riderId, order.userId),
-        new CreateTaskEvent(
-          TaskCategory.REQUEST_REVIEW,
-          order.userId,
-          order.userId,
-        ),
-      ]);
+      );
+      this.eventBus.publish(
+        new CreateTaskEvent(TaskCategory.REQUEST_REVIEW, order.userId, riderId),
+      );
 
       if (shouldManageTransaction) {
         await queryRunner.commitTransaction();
@@ -743,12 +685,12 @@ export class OrderService {
     }
 
     // Set assigned rider to null and update declined list
-    await this.orderRepository.update(order.id, {
-      riderId: undefined,
-      riderAssigned: false,
-      riderAssignedAt: undefined,
-      declinedRiderIds: declinedRiderIds,
-    });
+
+    order.declinedRiderIds = declinedRiderIds;
+    order.riderId = null as any;
+    order.riderAssigned = false;
+    order.riderAssignedAt = null as any;
+    await this.orderRepository.save(order);
 
     // Attempt to reassign to a new rider
     const newRiderId =

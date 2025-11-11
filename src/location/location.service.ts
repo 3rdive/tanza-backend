@@ -7,42 +7,13 @@ import {
 import axios, { AxiosError } from 'axios';
 import { ConfigService } from '@nestjs/config';
 import { StandardResponse } from '../commons/standard-response';
-
-type NominatimReverseResult = {
-  place_id: number;
-  display_name: string;
-  lat: string;
-  lon: string;
-  address?: Record<string, unknown>;
-};
-
-type OrsRoute = {
-  summary: { distance: number; duration: number };
-  geometry?: unknown;
-};
-
-type OrsDirectionsResponse = {
-  routes: OrsRoute[];
-};
-export interface PhotonFeature {
-  geometry: {
-    type: string;
-    coordinates: [number, number];
-  };
-  properties: {
-    name?: string;
-    country?: string;
-    state?: string;
-    city?: string;
-    street?: string;
-    postcode?: string;
-    [key: string]: any;
-  };
-}
-
-interface PhotonResponse {
-  features: PhotonFeature[];
-}
+import {
+  PhotonFeature,
+  PhotonResponse,
+  NominatimReverseResult,
+  OrsDirectionsResponse,
+  OrsRoute,
+} from './location.dto';
 
 @Injectable()
 export class LocationService {
@@ -103,9 +74,6 @@ export class LocationService {
             lon,
             format: 'json',
           },
-          headers: {
-            'User-Agent': this.APP_USER_AGENT,
-          },
         },
       );
 
@@ -121,7 +89,10 @@ export class LocationService {
   async calculateDistance(
     start: [number, number], // [lon, lat]
     end: [number, number], // [lon, lat]
-    mode: 'driving-car' | 'cycling-regular' | 'foot-walking' = 'driving-car',
+    mode:
+      | 'driving-car'
+      | 'cycling-regular'
+      | 'foot-walking' = 'cycling-regular',
   ): Promise<{
     distance_meters: number;
     distance_in_km: number;

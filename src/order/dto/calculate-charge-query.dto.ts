@@ -1,13 +1,12 @@
 import { Type, Transform } from 'class-transformer';
 import {
   IsDefined,
-  IsEnum,
   IsNotEmpty,
   IsNumber,
   IsOptional,
   IsBoolean,
+  ValidateIf,
 } from 'class-validator';
-import { VehicleType } from '../entities/vehicle-type.enum';
 
 export class CalculateChargeQueryDto {
   @IsDefined()
@@ -34,13 +33,14 @@ export class CalculateChargeQueryDto {
   @IsNumber()
   endLon!: number;
 
-  @IsDefined()
-  @IsNotEmpty()
-  @IsEnum(VehicleType)
-  vehicleType!: VehicleType;
-
   @IsOptional()
   @IsBoolean()
   @Transform(({ value }) => value === 'true' || value === true)
   isUrgent?: boolean;
+
+  @ValidateIf((o) => o.isUrgent === true)
+  @IsDefined({ message: 'urgencyFee is required when isUrgent is true' })
+  @IsNumber({}, { message: 'urgencyFee must be a number' })
+  @Type(() => Number)
+  urgencyFee?: number;
 }

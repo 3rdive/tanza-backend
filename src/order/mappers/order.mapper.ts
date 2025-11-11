@@ -120,6 +120,8 @@ export class OrderMapper {
             status: tracking.status,
             createdAt: tracking.createdAt,
           })) || [],
+      eta: order.eta,
+      createdAt: order.createdAt,
     };
   }
 
