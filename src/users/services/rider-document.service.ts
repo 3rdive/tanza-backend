@@ -128,8 +128,13 @@ export class RiderDocumentService {
     }
 
     document.documentStatus = dto.documentStatus;
-    if (dto.rejectionReason) {
+    if (
+      document.documentStatus === DocumentStatus.REJECTED &&
+      dto.rejectionReason
+    ) {
       document.rejectionReason = dto.rejectionReason;
+    } else {
+      document.rejectionReason = '';
     }
 
     const updatedDoc = await this.documentRepository.save(document);
@@ -283,14 +288,36 @@ export class RiderDocumentService {
       });
 
       if (existingDoc) {
-        // Update existing document
-        existingDoc.docUrl = dto.docUrl;
-        if (dto.expirationDate) {
-          existingDoc.expirationDate = new Date(dto.expirationDate);
+        // Update existing document only if something changed
+        let hasChanges = false;
+
+        if (existingDoc.docUrl !== dto.docUrl) {
+          existingDoc.docUrl = dto.docUrl;
+          hasChanges = true;
         }
-        existingDoc.documentStatus = DocumentStatus.PENDING;
-        const updatedDoc = await this.documentRepository.save(existingDoc);
-        uploaded.push(updatedDoc);
+
+        if (dto.expirationDate) {
+          const newExpirationDate = new Date(dto.expirationDate);
+          if (
+            !existingDoc.expirationDate ||
+            existingDoc.expirationDate.getTime() !== newExpirationDate.getTime()
+          ) {
+            existingDoc.expirationDate = newExpirationDate;
+            hasChanges = true;
+          }
+        }
+
+        if (existingDoc.documentStatus !== DocumentStatus.PENDING) {
+          existingDoc.documentStatus = DocumentStatus.PENDING;
+          hasChanges = true;
+        }
+
+        if (hasChanges) {
+          const updatedDoc = await this.documentRepository.save(existingDoc);
+          uploaded.push(updatedDoc);
+        } else {
+          uploaded.push(existingDoc);
+        }
       } else {
         // Create new document
         const document = this.documentRepository.create({
