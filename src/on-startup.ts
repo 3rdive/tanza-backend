@@ -4,6 +4,7 @@ import { UserRegDto } from './auth/models/user-reg.dto';
 import { Role } from './auth/roles.enum';
 import { RegisterUseCase } from './users/services/register.usecase';
 import { UserDetailsService } from './users/services/user-details.service';
+import { VehicleDocumentSettingsService } from './users/services/vehicle-document-settings.service';
 
 @Injectable()
 export class OnStartUp implements OnApplicationBootstrap {
@@ -11,9 +12,15 @@ export class OnStartUp implements OnApplicationBootstrap {
     private readonly userDetailsService: UserDetailsService,
     private readonly registerUseCase: RegisterUseCase,
     private readonly configService: ConfigService,
+    private readonly vehicleDocumentSettingsService: VehicleDocumentSettingsService,
   ) {}
   async onApplicationBootstrap() {
     console.log('on application bootstrap');
+
+    // Initialize default vehicle document settings
+    await this.vehicleDocumentSettingsService.initializeDefaultSettings();
+    console.log('Vehicle document settings initialized');
+
     // perform app configuration here i.e service charge, etc
     const email = this.configService.get<string>('DEFAULT_ADMIN_EMAIL');
     const mobile = this.configService.get<string>('DEFAULT_ADMIN_MOBILE');

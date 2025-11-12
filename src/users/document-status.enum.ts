@@ -1,7 +1,7 @@
 export enum DocumentStatus {
   INITIAL = 'INITIAL',
   PENDING = 'PENDING',
-  SUBMITTED = 'SUBMITTED',
+  // SUBMITTED = 'SUBMITTED',
   APPROVED = 'APPROVED',
   REJECTED = 'REJECTED',
 }

@@ -16,10 +16,20 @@ import { RiderService } from './services/rider.service';
 import { RiderController } from './controller/rider.controller';
 import { AdminController } from './controller/admin.controller';
 import { UsersGateway } from './users.gateway';
+import { VehicleDocumentSettings } from './entities/vehicle-document-settings.entity';
+import { RiderDocument } from './entities/rider-document.entity';
+import { VehicleDocumentSettingsService } from './services/vehicle-document-settings.service';
+import { RiderDocumentService } from './services/rider-document.service';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([User, RiderInfo, ActiveStatus]),
+    TypeOrmModule.forFeature([
+      User,
+      RiderInfo,
+      ActiveStatus,
+      VehicleDocumentSettings,
+      RiderDocument,
+    ]),
     forwardRef(() => OtpModule),
     CqrsModule,
   ],
@@ -28,6 +38,8 @@ import { UsersGateway } from './users.gateway';
     UserDetailsService,
     ActiveStatusService,
     RiderService,
+    VehicleDocumentSettingsService,
+    RiderDocumentService,
     InitRiderEventHandler,
     RegisterUseCase,
     UsersGateway,
@@ -43,6 +55,8 @@ import { UsersGateway } from './users.gateway';
     UserDetailsService,
     ActiveStatusService,
     RiderService,
+    VehicleDocumentSettingsService,
+    RiderDocumentService,
     RegisterUseCase,
   ],
 })

@@ -3,12 +3,14 @@ import {
   CreateDateColumn,
   Entity,
   JoinColumn,
+  OneToMany,
   OneToOne,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
 import { VehicleType } from '../order/entities/vehicle-type.enum';
 import { DocumentStatus } from './document-status.enum';
+import { RiderDocument } from './entities/rider-document.entity';
 import { User } from './user.entity';
 
 @Entity()
@@ -27,16 +29,12 @@ export class RiderInfo {
   documentStatus: DocumentStatus;
 
   @Column({ nullable: true })
-  vehiclePhoto: string;
-
-  @Column({ nullable: true })
-  driverLicense: string;
-
-  @Column({ type: 'jsonb', nullable: true })
-  vehiclePapers: string[];
-
-  @Column({ nullable: true })
   rejectionReason: string;
+
+  @OneToMany(() => RiderDocument, (document) => document.riderInfo, {
+    cascade: true,
+  })
+  documents: RiderDocument[];
 
   @Column()
   userId: string;

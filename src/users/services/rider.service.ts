@@ -29,13 +29,16 @@ export class RiderService {
   }
 
   async getRiderInfo(userId: string): Promise<RiderInfoDto> {
-    const info = await this.riderInfoRepository.findOne({ where: { userId } });
+    const info = await this.riderInfoRepository.findOne({
+      where: { userId },
+      relations: ['documents'],
+    });
     if (!info) {
       throw new BadRequestException(
         StandardResponse.fail('rider info not found'),
       );
     }
-    return RiderMapper.toDto(info);
+    return RiderMapper.toDto(info, true);
   }
 
   async updateRiderInfo(
@@ -50,9 +53,6 @@ export class RiderService {
     }
 
     if (dto.vehicleType !== undefined) info.vehicleType = dto.vehicleType;
-    if (dto.vehiclePhoto !== undefined) info.vehiclePhoto = dto.vehiclePhoto;
-    if (dto.driverLicense !== undefined) info.driverLicense = dto.driverLicense;
-    if (dto.vehiclePapers !== undefined) info.vehiclePapers = dto.vehiclePapers;
     if (dto.documentStatus !== undefined) {
       if (!USER_DOCUMENT_STATUS_ALLOWED.includes(dto.documentStatus)) {
         throw new BadRequestException(
@@ -73,8 +73,9 @@ export class RiderService {
   ): Promise<RiderInfoDto[]> {
     const riders = await this.riderInfoRepository.find({
       where: { documentStatus: status },
+      relations: ['documents'],
     });
-    return riders.map((r) => RiderMapper.toDto(r));
+    return riders.map((r) => RiderMapper.toDto(r, true));
   }
 
   async updateRiderDocumentStatus(

@@ -1,4 +1,4 @@
-import { IsEnum, IsOptional, IsString, IsArray } from 'class-validator';
+import { IsEnum, IsOptional } from 'class-validator';
 import { VehicleType } from '../../order/entities/vehicle-type.enum';
 import { DocumentStatus } from '../document-status.enum';
 
@@ -6,7 +6,6 @@ import { DocumentStatus } from '../document-status.enum';
 export const USER_DOCUMENT_STATUS_ALLOWED: readonly DocumentStatus[] = [
   DocumentStatus.INITIAL,
   DocumentStatus.PENDING,
-  DocumentStatus.SUBMITTED,
 ];
 
 export class UpdateRiderInfoDto {
@@ -14,24 +13,10 @@ export class UpdateRiderInfoDto {
   @IsEnum(VehicleType)
   vehicleType?: VehicleType;
 
-  @IsOptional()
-  @IsString()
-  vehiclePhoto?: string;
-
-  @IsOptional()
-  @IsString()
-  driverLicense?: string;
-
-  @IsOptional()
-  @IsArray()
-  // allow empty array to clear papers
-  vehiclePapers?: string[];
-
-  // documentStatus is optional and should generally be set by admins/internal flows
-  // Restrict to INITIAL, PENDING, SUBMITTED only
+  // Restrict to INITIAL & PENDING only
   @IsOptional()
   @IsEnum(USER_DOCUMENT_STATUS_ALLOWED, {
-    message: 'documentStatus must be one of: INITIAL, PENDING, SUBMITTED',
+    message: 'documentStatus must be one of: INITIAL & PENDING',
   })
   documentStatus?: (typeof USER_DOCUMENT_STATUS_ALLOWED)[number];
 }
