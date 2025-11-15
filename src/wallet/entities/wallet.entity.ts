@@ -25,7 +25,13 @@ export class Wallets {
   user: User;
 
   //DO NOT UPDATE without migration script
-  @Column({ type: 'decimal', precision: 12, scale: 2, default: 0, transformer: new DecimalToNumberTransformer() })
+  @Column({
+    type: 'decimal',
+    precision: 12,
+    scale: 2,
+    default: 0,
+    transformer: new DecimalToNumberTransformer(),
+  })
   walletBalance: number;
 
   @OneToMany(() => Transactions, (transaction) => transaction.wallet)

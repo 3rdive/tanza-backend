@@ -15,17 +15,22 @@ import { BaseUrl } from '../constants';
 import { CurrentUser } from '../users/user.decorator';
 import { OrderRiderPaginationDto } from '../wallet/dto/OrderRiderPaginationDto';
 import { CalculateChargeQueryDto } from './dto/calculate-charge-query.dto';
+import { CalculateMultipleDeliveryFeeDto } from './dto/calculate-multiple-delivery-fee.dto';
 import { CreateOrderDto } from './dto/create-order.dto';
+import { CreateMultipleDeliveryOrderDto } from './dto/create-multiple-delivery-order.dto';
 import { OrderTrackingDto } from './dto/order-tracking.dto';
 import { RiderFeedbackDto } from './dto/rider-feedback.dto';
 import { OrderService } from './order.service';
 import { CalculateDeliveryChargesUsecase } from './usecasses/calculate-delivery-charges.usecase';
+import { CreateOrderUsecase } from './usecasses/create-order.usecase';
+import { SearchAddressBookDto } from './dto/search-address-book.dto';
 
 @Controller(BaseUrl.ORDER)
 export class OrderController {
   constructor(
     private readonly orderService: OrderService,
     private readonly calculateDeliveryChargesUsecase: CalculateDeliveryChargesUsecase,
+    private readonly createOrderUsecase: CreateOrderUsecase,
   ) {}
 
   @Get('calculate-charge')
@@ -38,6 +43,26 @@ export class OrderController {
       isUrgent || false,
       urgencyFee!,
     );
+  }
+
+  @Post('calculate-multiple-delivery-charge')
+  async calculateMultipleDeliveryCharge(
+    @Body() dto: CalculateMultipleDeliveryFeeDto,
+  ) {
+    return this.calculateDeliveryChargesUsecase.calculateMultipleDeliveryFee(
+      dto.pickupLocation,
+      dto.deliveryLocations,
+      dto.isUrgent || false,
+      dto.urgencyFee,
+    );
+  }
+
+  @Post('multiple-delivery')
+  async createMultipleDeliveryOrder(
+    @Body() dto: CreateMultipleDeliveryOrderDto,
+    @CurrentUser() user: JwtPayload,
+  ) {
+    return this.createOrderUsecase.createMultipleDeliveryOrder(user.sub, dto);
   }
 
   @Post()
@@ -110,6 +135,14 @@ export class OrderController {
     @Body() dto: RiderFeedbackDto,
   ) {
     return this.orderService.handleRiderFeedback(user.sub, dto);
+  }
+
+  @Get('address-book')
+  async getAddressBook(
+    @CurrentUser() user: JwtPayload,
+    @Query() dto: SearchAddressBookDto,
+  ) {
+    return this.orderService.getAddressBook(user.sub, dto);
   }
 
   //this should come last to avoid route conflicts

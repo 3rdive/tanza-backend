@@ -37,6 +37,8 @@ import { RiderGateway } from './riders.gateway';
 import { CreateTaskEvent } from '../task/create-task.event';
 import { TaskCategory } from '../task/task-category.enum';
 import { CalculateDeliveryChargesUsecase } from './usecasses/calculate-delivery-charges.usecase';
+import { SearchAddressBookDto } from './dto/search-address-book.dto';
+import { UserInfo } from './entities/user-info';
 
 @Injectable()
 export class OrderService {
@@ -706,5 +708,70 @@ export class OrderService {
       }
     }
     // If no rider available, order remains unassigned
+  }
+
+  /**
+   * Get address book for a user based on their order history
+   * Returns unique user info entries (sender/recipient) from all orders
+   */
+  async getAddressBook(
+    userId: string,
+    dto: SearchAddressBookDto,
+  ): Promise<StandardResponse<UserInfo>> {
+    const { query, limit = 10, page = 1 } = dto;
+
+    // Build a raw SQL query for better performance
+    // This extracts unique contacts from both sender and recipient JSONB fields
+    const searchCondition = query?.trim()
+      ? `AND (
+          LOWER(contact->>'phone') LIKE LOWER($2) OR
+          LOWER(contact->>'name') LIKE LOWER($2) OR
+          LOWER(contact->>'email') LIKE LOWER($2)
+        )`
+      : '';
+
+    const searchParam = query?.trim() ? `%${query.trim()}%` : null;
+
+    // First, get unique contacts with their details
+    const rawQuery = `
+      WITH all_contacts AS (
+        SELECT DISTINCT ON ((contact->>'phone'))
+          contact->>'name' as name,
+          contact->>'email' as email,
+          contact->>'phone' as phone,
+          contact->>'role' as role
+        FROM (
+          SELECT sender as contact FROM "order" WHERE "userId" = $1 AND sender IS NOT NULL
+          UNION ALL
+          SELECT recipient as contact FROM "order" WHERE "userId" = $1 AND recipient IS NOT NULL
+        ) contacts
+        WHERE (contact->>'phone') IS NOT NULL
+        ${searchCondition}
+      )
+      SELECT * FROM all_contacts
+      ORDER BY LOWER(name)
+    `;
+
+    const params = searchParam ? [userId, searchParam] : [userId];
+    const allContacts: UserInfo[] = await this.orderRepository.query(
+      rawQuery,
+      params,
+    );
+
+    // Paginate in memory (already filtered and deduplicated by DB)
+    const total = allContacts.length;
+    const skip = (page - 1) * limit;
+    const paginatedData = allContacts.slice(skip, skip + limit);
+
+    return StandardResponse.withPagination(
+      paginatedData,
+      'Address book fetched successfully',
+      {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+      },
+    );
   }
 }

@@ -10,6 +10,7 @@ import {
 import { User } from '../../users/user.entity';
 import { Transactions } from '../../wallet/entities/transaction.entity';
 import { OrderTracking } from './order-tracking.entity';
+import { DeliveryDestination } from './delivery-destination.entity';
 import { UserInfo } from './user-info';
 import { UserOrderRole } from './user-order-role.enum';
 import { VehicleType } from './vehicle-type.enum';
@@ -35,6 +36,14 @@ export class Order {
 
   @Column({ type: 'jsonb', nullable: true })
   dropOffLocation: OrderLocation;
+
+  @OneToMany(() => DeliveryDestination, (destination) => destination.order, {
+    cascade: true,
+  })
+  deliveryDestinations: DeliveryDestination[];
+
+  @Column({ default: false })
+  hasMultipleDeliveries: boolean;
 
   @Column({ type: 'enum', enum: UserOrderRole })
   userOrderRole: UserOrderRole;

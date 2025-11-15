@@ -27,7 +27,7 @@ export class WalletService {
     private readonly payStackService: PayStackService,
     private readonly transactionService: TransactionService,
     private readonly eventBus: EventBus,
-  ) { }
+  ) {}
 
   async deductAmount(userId: string, amount: number) {
     const wallet = await this.walletRepository.findOne({ where: { userId } });

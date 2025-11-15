@@ -30,7 +30,13 @@ export class Transactions {
   @ManyToOne(() => User, (user) => user.transactions)
   user: User;
 
-  @Column({ type: 'decimal', precision: 12, scale: 2, default: 0, transformer: new DecimalToNumberTransformer() })
+  @Column({
+    type: 'decimal',
+    precision: 12,
+    scale: 2,
+    default: 0,
+    transformer: new DecimalToNumberTransformer(),
+  })
   amount: number;
 
   @Column()

@@ -16,6 +16,7 @@ import { CurrentUser } from '../user.decorator';
 import { UsersService } from '../services/users.service';
 import { ProfileUpdateDto } from '../models/profile-update.dto';
 import { PasswordUpdateDto } from '../models/password-update.dto';
+import { SearchUserDto } from '../dto/search-user.dto';
 
 @Controller(BaseUrl.USER)
 export class UserController {
@@ -111,5 +112,10 @@ export class UserController {
       throw new BadRequestException('address is required');
     }
     return this.usersService.updateUserAddress(user.sub, userAddress);
+  }
+
+  @Get('search')
+  async searchUsers(@Query() dto: SearchUserDto) {
+    return this.usersService.searchUsers(dto);
   }
 }

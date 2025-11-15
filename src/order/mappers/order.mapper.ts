@@ -122,6 +122,8 @@ export class OrderMapper {
           })) || [],
       eta: order.eta,
       createdAt: order.createdAt,
+      sender: order.sender,
+      recipient: order.recipient,
     };
   }
 

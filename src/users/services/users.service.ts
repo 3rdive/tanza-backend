@@ -16,6 +16,7 @@ import { UserProfileDto } from '../models/user-profile.dto';
 import { UserAddress } from '../user-address';
 import { UserMapper } from '../user-mapper';
 import { User } from '../user.entity';
+import { SearchUserDto } from '../dto/search-user.dto';
 
 @Injectable()
 export class UsersService {
@@ -165,5 +166,44 @@ export class UsersService {
     user.usersAddress = address;
     await this.userRepository.save(user);
     return 'address updated successfully';
+  }
+
+  async searchUsers(
+    dto: SearchUserDto,
+  ): Promise<StandardResponse<UserProfileDto>> {
+    const { query, limit = 10, page = 1 } = dto;
+
+    const queryBuilder = this.userRepository
+      .createQueryBuilder('user')
+      .leftJoinAndSelect('user.riderInfo', 'riderInfo');
+
+    if (query && query.trim()) {
+      const searchTerm = `%${query.trim().toLowerCase()}%`;
+      queryBuilder.andWhere(
+        "(LOWER(user.mobile) LIKE :searchTerm OR LOWER(user.email) LIKE :searchTerm OR LOWER(user.firstName) LIKE :searchTerm OR LOWER(user.lastName) LIKE :searchTerm OR LOWER(CONCAT(user.firstName, ' ', user.lastName)) LIKE :searchTerm)",
+        { searchTerm },
+      );
+    }
+
+    const skip = (page - 1) * limit;
+    queryBuilder
+      .skip(skip)
+      .take(limit)
+      .orderBy('user.registrationDate', 'DESC');
+
+    const [users, total] = await queryBuilder.getManyAndCount();
+
+    const userDtos = users.map((user) => UserMapper.toProfileDto(user));
+
+    return StandardResponse.withPagination(
+      userDtos,
+      'Users fetched successfully',
+      {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+      },
+    );
   }
 }
