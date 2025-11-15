@@ -17,6 +17,7 @@ import { UsersService } from '../services/users.service';
 import { ProfileUpdateDto } from '../models/profile-update.dto';
 import { PasswordUpdateDto } from '../models/password-update.dto';
 import { SearchUserDto } from '../dto/search-user.dto';
+import { SetPushNotificationTokenDto } from '../dto/set-push-notification-token.dto';
 
 @Controller(BaseUrl.USER)
 export class UserController {
@@ -117,5 +118,19 @@ export class UserController {
   @Get('search')
   async searchUsers(@Query() dto: SearchUserDto) {
     return this.usersService.searchUsers(dto);
+  }
+
+  @Post('push-notification/token')
+  async setPushNotificationToken(
+    @CurrentUser() user: JwtPayload,
+    @Body() dto: SetPushNotificationTokenDto,
+  ) {
+    if (!user) {
+      throw new BadRequestException('Unauthorized');
+    }
+    return await this.usersService.setPushNotificationToken(
+      user.sub,
+      dto.expoPushNotificationToken,
+    );
   }
 }

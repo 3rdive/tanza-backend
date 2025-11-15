@@ -13,6 +13,13 @@ import { MarkAsSeenDto } from './dto/mark-as-seen.dto';
 import { PaginationService } from '../commons/pagination.service';
 import { StandardResponse } from '../commons/standard-response';
 import { PaginationDto } from '../commons/pagination.dto';
+import {
+  SendPushNotificationDto,
+  SendBulkPushNotificationDto,
+} from './dto/send-push-notification.dto';
+import { User } from '../users/user.entity';
+import { EventBus } from '@nestjs/cqrs';
+import { SendPushNotificationEvent } from './send-push-notification.event';
 
 @Injectable()
 export class NotificationService {
@@ -21,6 +28,9 @@ export class NotificationService {
   constructor(
     @InjectRepository(Notification)
     private readonly notificationRepository: Repository<Notification>,
+    @InjectRepository(User)
+    private readonly userRepository: Repository<User>,
+    private readonly eventBus: EventBus,
   ) {}
 
   async create(
@@ -154,6 +164,108 @@ export class NotificationService {
     } catch (error) {
       this.logger.error('Failed to mark notifications as seen', error);
       throw new BadRequestException('Failed to mark notifications as seen');
+    }
+  }
+
+  async sendPushNotification(
+    sendPushNotificationDto: SendPushNotificationDto,
+  ): Promise<{ message: string }> {
+    try {
+      const { userId, title, body } = sendPushNotificationDto;
+
+      // Verify user exists and has push notifications enabled
+      const user = await this.userRepository.findOne({
+        where: { id: userId },
+      });
+
+      if (!user) {
+        throw new NotFoundException(`User with ID ${userId} not found`);
+      }
+
+      if (!user.expoPushNotificationToken || !user.hasSetUpNotification) {
+        throw new BadRequestException(
+          `User ${userId} does not have push notifications enabled`,
+        );
+      }
+
+      // Publish event to send push notification
+      this.eventBus.publish(new SendPushNotificationEvent(userId, title, body));
+
+      this.logger.log(`Push notification queued for user ${userId}`);
+
+      return {
+        message: `Push notification sent successfully to user ${userId}`,
+      };
+    } catch (error) {
+      if (
+        error instanceof NotFoundException ||
+        error instanceof BadRequestException
+      ) {
+        throw error;
+      }
+      this.logger.error('Failed to send push notification', error);
+      throw new BadRequestException('Failed to send push notification');
+    }
+  }
+
+  async sendBulkPushNotification(
+    sendBulkPushNotificationDto: SendBulkPushNotificationDto,
+  ): Promise<{ message: string; sentCount: number; failedCount: number }> {
+    try {
+      const { userIds, title, body } = sendBulkPushNotificationDto;
+
+      // Fetch users with push notifications enabled
+      const users = await this.userRepository.find({
+        where: {
+          id: In(userIds),
+          hasSetUpNotification: true,
+        },
+      });
+
+      if (users.length === 0) {
+        throw new BadRequestException(
+          'No users found with push notifications enabled',
+        );
+      }
+
+      let sentCount = 0;
+      let failedCount = 0;
+
+      // Send push notification to each user
+      for (const user of users) {
+        try {
+          if (user.expoPushNotificationToken) {
+            this.eventBus.publish(
+              new SendPushNotificationEvent(user.id, title, body),
+            );
+            sentCount++;
+          } else {
+            failedCount++;
+          }
+        } catch (error) {
+          this.logger.error(
+            `Failed to queue push notification for user ${user.id}`,
+            error,
+          );
+          failedCount++;
+        }
+      }
+
+      this.logger.log(
+        `Bulk push notification: ${sentCount} sent, ${failedCount} failed`,
+      );
+
+      return {
+        message: `Bulk push notification completed`,
+        sentCount,
+        failedCount,
+      };
+    } catch (error) {
+      if (error instanceof BadRequestException) {
+        throw error;
+      }
+      this.logger.error('Failed to send bulk push notification', error);
+      throw new BadRequestException('Failed to send bulk push notification');
     }
   }
 }

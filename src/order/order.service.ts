@@ -167,7 +167,19 @@ export class OrderService {
     }
 
     const excludedRiderIds = order.declinedRiderIds || [];
-    const riderId = await this.riderService.getRiderForOrder(excludedRiderIds);
+
+    // Extract pickup location coordinates
+    const pickupLocation: [number, number] | undefined = order.pickUpLocation
+      ? [
+          parseFloat(order.pickUpLocation.longitude),
+          parseFloat(order.pickUpLocation.latitude),
+        ]
+      : undefined;
+
+    const riderId = await this.riderService.getRiderForOrder(
+      excludedRiderIds,
+      pickupLocation,
+    );
 
     if (!riderId) {
       this.logger.warn('No available rider found for order assignment');

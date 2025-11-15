@@ -16,6 +16,10 @@ import { NotificationService } from './notification.service';
 import { CreateNotificationDto } from './dto/create-notification.dto';
 import { UpdateNotificationDto } from './dto/update-notification.dto';
 import { MarkAsSeenDto } from './dto/mark-as-seen.dto';
+import {
+  SendPushNotificationDto,
+  SendBulkPushNotificationDto,
+} from './dto/send-push-notification.dto';
 import { Notification } from './notification.entity';
 import { CurrentUser } from '../users/user.decorator';
 import { JwtPayload } from '../auth/models/jwt-payload.type';
@@ -77,5 +81,27 @@ export class NotificationController {
     @Body() markAsSeenDto: MarkAsSeenDto,
   ): Promise<{ message: string; updatedCount: number }> {
     return await this.notificationService.markAsSeen(user.sub, markAsSeenDto);
+  }
+
+  @Post('push/send')
+  @HttpCode(HttpStatus.OK)
+  async sendPushNotification(
+    @Body(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true }))
+    sendPushNotificationDto: SendPushNotificationDto,
+  ): Promise<{ message: string }> {
+    return await this.notificationService.sendPushNotification(
+      sendPushNotificationDto,
+    );
+  }
+
+  @Post('push/send-bulk')
+  @HttpCode(HttpStatus.OK)
+  async sendBulkPushNotification(
+    @Body(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true }))
+    sendBulkPushNotificationDto: SendBulkPushNotificationDto,
+  ): Promise<{ message: string; sentCount: number; failedCount: number }> {
+    return await this.notificationService.sendBulkPushNotification(
+      sendBulkPushNotificationDto,
+    );
   }
 }

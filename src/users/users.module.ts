@@ -20,6 +20,7 @@ import { VehicleDocumentSettings } from './entities/vehicle-document-settings.en
 import { RiderDocument } from './entities/rider-document.entity';
 import { VehicleDocumentSettingsService } from './services/vehicle-document-settings.service';
 import { RiderDocumentService } from './services/rider-document.service';
+import { Order } from '../order/entities/order.entity';
 
 @Module({
   imports: [
@@ -29,6 +30,7 @@ import { RiderDocumentService } from './services/rider-document.service';
       ActiveStatus,
       VehicleDocumentSettings,
       RiderDocument,
+      Order,
     ]),
     forwardRef(() => OtpModule),
     CqrsModule,

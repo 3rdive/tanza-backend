@@ -168,6 +168,20 @@ export class UsersService {
     return 'address updated successfully';
   }
 
+  async setPushNotificationToken(userId: string, token: string) {
+    const user = await this.userRepository.findOne({ where: { id: userId } });
+    if (!user) {
+      throw new BadRequestException(StandardResponse.fail('user not found'));
+    }
+    user.expoPushNotificationToken = token;
+    user.hasSetUpNotification = true;
+    await this.userRepository.save(user);
+    return StandardResponse.ok(
+      'Push notification token set successfully',
+      'Push notification token set successfully',
+    );
+  }
+
   async searchUsers(
     dto: SearchUserDto,
   ): Promise<StandardResponse<UserProfileDto>> {

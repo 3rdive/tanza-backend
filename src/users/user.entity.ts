@@ -80,6 +80,12 @@ export class User {
   @Column({ type: 'timestamptz', nullable: true })
   lastMobileUpdate: Date | null;
 
+  @Column({ nullable: true })
+  expoPushNotificationToken: string;
+
+  @Column({ default: false, nullable: true })
+  hasSetUpNotification: boolean;
+
   @OneToOne(() => RiderInfo, (riderInfo) => riderInfo.user)
   riderInfo: RiderInfo;
 }

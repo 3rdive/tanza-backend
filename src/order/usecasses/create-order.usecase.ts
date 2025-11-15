@@ -18,16 +18,24 @@ import { TrackingStatus } from '../entities/tracking-status.enum';
 import { UserOrderRole } from '../entities/user-order-role.enum';
 import { CalculateDeliveryChargesUsecase } from './calculate-delivery-charges.usecase';
 import { VehicleType } from '../entities/vehicle-type.enum';
+import { RiderService } from '../../users/services/rider.service';
 
 @Injectable()
 export class CreateOrderUsecase {
   private readonly logger = new Logger(CreateOrderUsecase.name);
 
   constructor(
+    @InjectRepository(Order)
+    private readonly orderRepository: Repository<Order>,
+    @InjectRepository(OrderTracking)
+    private readonly orderTrackingRepository: Repository<OrderTracking>,
+    @InjectRepository(DeliveryDestination)
+    private readonly deliveryDestinationRepository: Repository<DeliveryDestination>,
     private readonly eventBus: EventBus,
     private readonly calculateDeliveryChargesUsecase: CalculateDeliveryChargesUsecase,
     private readonly walletService: WalletService,
     private readonly dataSource: DataSource,
+    private readonly riderService: RiderService,
   ) {}
 
   async createMultipleDeliveryOrder(
@@ -178,6 +186,9 @@ export class CreateOrderUsecase {
       transactionDto.orderId = savedOrder.id;
       this.eventBus.publish(new CreateTransactionEvent(transactionDto));
 
+      // Assign rider to order based on pickup location
+      await this.assignRiderToOrder(savedOrder.id, dto.pickUpCoordinates);
+
       return StandardResponse.ok(
         savedOrder,
         'Multiple delivery order created successfully',
@@ -191,6 +202,53 @@ export class CreateOrderUsecase {
       throw error;
     } finally {
       await queryRunner.release();
+    }
+  }
+
+  /**
+   * Assign a rider to the order based on pickup location
+   */
+  private async assignRiderToOrder(
+    orderId: string,
+    pickupCoordinates: [number, number],
+  ): Promise<void> {
+    try {
+      const order = await this.orderRepository.findOne({
+        where: { id: orderId },
+      });
+
+      if (!order) {
+        this.logger.warn(`Order ${orderId} not found for rider assignment`);
+        return;
+      }
+
+      const excludedRiderIds = order.declinedRiderIds || [];
+      const riderId = await this.riderService.getRiderForOrder(
+        excludedRiderIds,
+        pickupCoordinates,
+      );
+
+      if (!riderId) {
+        this.logger.warn(
+          `No available rider found for order ${orderId} assignment`,
+        );
+        return;
+      }
+
+      // Update order with rider assignment
+      await this.orderRepository.update(orderId, {
+        riderId,
+        riderAssigned: true,
+        riderAssignedAt: new Date(),
+      });
+
+      this.logger.log(`Rider ${riderId} assigned to order ${orderId}`);
+    } catch (error) {
+      this.logger.error(
+        `Failed to assign rider to order ${orderId}`,
+        error?.stack || String(error),
+      );
+      // Don't throw - rider assignment failure shouldn't fail order creation
     }
   }
 }
