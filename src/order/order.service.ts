@@ -39,6 +39,9 @@ import { TaskCategory } from '../task/task-category.enum';
 import { CalculateDeliveryChargesUsecase } from './usecasses/calculate-delivery-charges.usecase';
 import { SearchAddressBookDto } from './dto/search-address-book.dto';
 import { UserInfo } from './entities/user-info';
+import { DeliveryDestination } from './entities/delivery-destination.entity';
+import { MarkDestinationDeliveredDto } from './dto/mark-destination-delivered.dto';
+import { SendPushNotificationEvent } from '../notification/send-push-notification.event';
 
 @Injectable()
 export class OrderService {
@@ -58,6 +61,8 @@ export class OrderService {
     private readonly orderRepository: Repository<Order>,
     @InjectRepository(OrderTracking)
     private readonly orderTrackingRepository: Repository<OrderTracking>,
+    @InjectRepository(DeliveryDestination)
+    private readonly deliveryDestinationRepository: Repository<DeliveryDestination>,
     private readonly eventBus: EventBus,
     private readonly calculateDeliveryChargesUsecase: CalculateDeliveryChargesUsecase,
     private readonly riderService: RiderService,
@@ -200,27 +205,32 @@ export class OrderService {
       riderAssignedAt: new Date(),
     });
 
+    const updatedOrder = await this.orderRepository.findOne({
+      where: { id: order.id },
+      relations: ['deliveryDestinations', 'user'],
+    });
+
     // Send push notification
     this.eventBus.publish(
       new CreateNotficationEvent(
         'New Order',
         `You have a new order delivery of N${order.deliveryFee ?? 0}`,
         riderId,
-        `/orders/${order.id}`,
+        `(tabs)/orders/${order.id}?tab=upcoming`,
       ),
     );
 
     // Send real-time WebSocket notification
     this.riderGateway.notifyRiderNewOrder(
       riderId,
-      OrderMapper.mapToAssignedOrder(order),
+      OrderMapper.mapToAssignedOrder(updatedOrder!),
     );
   }
 
   async findOne(id: string): Promise<Order | null> {
     return this.orderRepository.findOne({
       where: { id },
-      relations: ['orderTracking'],
+      relations: ['orderTracking', 'deliveryDestinations'],
     });
   }
 
@@ -240,9 +250,34 @@ export class OrderService {
       // Ensure the order exists
       const order = await orderRepo.findOne({
         where: { id: orderId },
+        relations: ['deliveryDestinations'],
       });
       if (!order) {
         throw new BadRequestException(StandardResponse.fail('order not found'));
+      }
+
+      // If order has multiple deliveries and trying to mark as DELIVERED,
+      // check if all destinations have been delivered
+      if (
+        status === TrackingStatus.DELIVERED &&
+        order.hasMultipleDeliveries &&
+        order.deliveryDestinations &&
+        order.deliveryDestinations.length > 0
+      ) {
+        const allDestinationsDelivered = order.deliveryDestinations.every(
+          (dest) => dest.delivered,
+        );
+
+        if (!allDestinationsDelivered) {
+          const undeliveredCount = order.deliveryDestinations.filter(
+            (dest) => !dest.delivered,
+          ).length;
+          throw new BadRequestException(
+            StandardResponse.fail(
+              `cannot mark order as delivered. ${undeliveredCount} delivery destination(s) have not been delivered yet`,
+            ),
+          );
+        }
       }
 
       // Prevent duplicate tracking status for the same order
@@ -533,7 +568,7 @@ export class OrderService {
           'Order Reward',
           `Your have been credited for your order completion`,
           riderId,
-          '/orders',
+          `(tabs)/orders/${order.id}?tab=completed`,
         ),
       );
 
@@ -603,6 +638,7 @@ export class OrderService {
       )
       // Select all tracking entries for each order
       .leftJoinAndSelect('o.orderTracking', 'allTracking')
+      .leftJoinAndSelect('o.deliveryDestinations', 'deliveryDestinations')
       // Also fetch the user who created the order
       .leftJoinAndSelect('o.user', 'user')
       .where('o.riderId = :riderId ', { riderId })
@@ -631,6 +667,7 @@ export class OrderService {
       )
       // Select all tracking entries for each order
       .leftJoinAndSelect('o.orderTracking', 'allTracking')
+      .leftJoinAndSelect('o.deliveryDestinations', 'deliveryDestinations')
       // Also fetch the user who created the order
       .leftJoinAndSelect('o.user', 'user')
       .where('o.riderId = :riderId', { riderId })
@@ -726,6 +763,110 @@ export class OrderService {
    * Get address book for a user based on their order history
    * Returns unique user info entries (sender/recipient) from all orders
    */
+  /**
+   * Mark a delivery destination as delivered and send push notification to the user
+   */
+  async markDestinationDelivered({
+    orderId,
+    destinationId,
+  }: MarkDestinationDeliveredDto): Promise<DeliveryDestination> {
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+
+    try {
+      const destinationRepo =
+        queryRunner.manager.getRepository(DeliveryDestination);
+      const orderRepo = queryRunner.manager.getRepository(Order);
+
+      // Find the delivery destination
+      const destination = await destinationRepo.findOne({
+        where: { id: destinationId, orderId },
+        relations: ['order', 'order.user'],
+      });
+
+      if (!destination) {
+        throw new BadRequestException(
+          StandardResponse.fail('delivery destination not found'),
+        );
+      }
+
+      if (destination.delivered) {
+        throw new BadRequestException(
+          StandardResponse.fail(
+            'delivery destination already marked as delivered',
+          ),
+        );
+      }
+
+      // Find the order to get user details
+      const order = await orderRepo.findOne({
+        where: { id: orderId },
+        relations: ['user', 'deliveryDestinations'],
+      });
+
+      if (!order) {
+        throw new BadRequestException(StandardResponse.fail('order not found'));
+      }
+
+      // Mark destination as delivered
+      destination.delivered = true;
+      destination.deliveredAt = new Date();
+      const updatedDestination = await destinationRepo.save(destination);
+
+      // Send push notification to the user who booked the order
+      if (order.user && order.userId) {
+        try {
+          this.eventBus.publish(
+            new SendPushNotificationEvent(
+              order.userId,
+              'Delivery Completed',
+              `Your package has been delivered to ${destination.recipient.name || destination.dropOffLocation.address}`,
+              {
+                orderId: order.id,
+                destinationId: destination.id,
+                type: 'destination_delivered',
+              },
+            ),
+          );
+
+          // Also create in-app notification
+          this.eventBus.publish(
+            new CreateNotficationEvent(
+              'Delivery Completed',
+              `Your package has been delivered to ${destination.recipient.name || destination.dropOffLocation.address}`,
+              order.userId,
+              `/history/${order.id}`,
+            ),
+          );
+        } catch (notificationError) {
+          this.logger.error(
+            `Failed to send notification for destination ${destinationId}`,
+            notificationError?.stack || String(notificationError),
+          );
+          // Don't fail the whole operation if notification fails
+        }
+      }
+
+      await queryRunner.commitTransaction();
+
+      this.logger.log(
+        `Delivery destination ${destinationId} marked as delivered for order ${orderId}`,
+      );
+
+      return updatedDestination;
+    } catch (error) {
+      await queryRunner.rollbackTransaction();
+      this.logger.error(
+        `Failed to mark destination ${destinationId} as delivered for order ${orderId}`,
+        error?.stack || String(error),
+      );
+      throw error;
+    } finally {
+      await queryRunner.release();
+    }
+  }
+
   async getAddressBook(
     userId: string,
     dto: SearchAddressBookDto,

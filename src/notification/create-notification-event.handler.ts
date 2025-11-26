@@ -17,7 +17,9 @@ export class CreateNotficationEventHandler
 
     // Trigger push notification event
     this.eventBus.publish(
-      new SendPushNotificationEvent(event.userId, event.title, event.text),
+      new SendPushNotificationEvent(event.userId, event.title, event.text, {
+        route: event.redirect_to ?? '(tabs)',
+      }),
     );
   }
 }

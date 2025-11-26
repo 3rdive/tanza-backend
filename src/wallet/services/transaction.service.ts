@@ -110,7 +110,7 @@ export class TransactionService {
 
     return await this.transactionRepository.findOne({
       where: useUUID ? { id: idOrReference } : { reference: idOrReference },
-      relations: ['order', 'order.orderTracking'],
+      relations: ['order', 'order.orderTracking', 'order.deliveryDestinations'],
     });
   }
 

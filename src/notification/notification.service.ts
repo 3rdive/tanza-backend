@@ -171,7 +171,7 @@ export class NotificationService {
     sendPushNotificationDto: SendPushNotificationDto,
   ): Promise<{ message: string }> {
     try {
-      const { userId, title, body } = sendPushNotificationDto;
+      const { userId, title, body, data } = sendPushNotificationDto;
 
       // Verify user exists and has push notifications enabled
       const user = await this.userRepository.findOne({
@@ -189,7 +189,9 @@ export class NotificationService {
       }
 
       // Publish event to send push notification
-      this.eventBus.publish(new SendPushNotificationEvent(userId, title, body));
+      this.eventBus.publish(
+        new SendPushNotificationEvent(userId, title, body, data),
+      );
 
       this.logger.log(`Push notification queued for user ${userId}`);
 

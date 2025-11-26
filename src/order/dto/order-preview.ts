@@ -11,6 +11,7 @@ export class OrderPreview {
     public deliveryFee: number,
     public updatedAt: Date,
     public eta: string,
+    public hasMultipleDeliveries: boolean,
     public riderRewarded: boolean,
   ) {}
 }

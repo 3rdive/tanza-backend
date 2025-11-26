@@ -29,6 +29,7 @@
     "@nestjs/mapped-types": "*",
     "@nestjs/platform-express": "^11.0.1",
     "@nestjs/typeorm": "^11.0.0",
+    "@nestjs/schedule": "^3.0.0",
     "@types/bcrypt": "^6.0.0",
     "axios": "^1.11.0",
     "bcrypt": "^6.0.0",

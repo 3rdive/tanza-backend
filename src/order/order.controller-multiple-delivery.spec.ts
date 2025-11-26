@@ -4,6 +4,7 @@ import { OrderService } from './order.service';
 import { CalculateDeliveryChargesUsecase } from './usecasses/calculate-delivery-charges.usecase';
 import { CreateOrderUsecase } from './usecasses/create-order.usecase';
 import { CalculateMultipleDeliveryFeeDto } from './dto/calculate-multiple-delivery-fee.dto';
+import { VehicleType } from './entities/vehicle-type.enum';
 
 describe('OrderController - Multiple Delivery Endpoint', () => {
   let controller: OrderController;
@@ -70,7 +71,7 @@ describe('OrderController - Multiple Delivery Endpoint', () => {
         deliveries: [],
         totalDistanceKm: 6.4,
         estimatedTotalDuration: '20 minutes',
-        vehicleType: 'bike' as const,
+        vehicleType: VehicleType.BIKE,
       };
 
       calculateDeliveryChargesUsecase.calculateMultipleDeliveryFee.mockResolvedValue(
@@ -110,7 +111,7 @@ describe('OrderController - Multiple Delivery Endpoint', () => {
         deliveries: [],
         totalDistanceKm: 3.2,
         estimatedTotalDuration: '10 minutes',
-        vehicleType: 'bike' as const,
+        vehicleType: VehicleType.BIKE,
       };
 
       calculateDeliveryChargesUsecase.calculateMultipleDeliveryFee.mockResolvedValue(

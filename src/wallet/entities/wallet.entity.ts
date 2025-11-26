@@ -18,10 +18,11 @@ export class Wallets {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column()
+  @Column({ nullable: true })
   userId: string;
 
   @OneToOne(() => User, (user) => user.wallet)
+  @JoinColumn({ name: 'userId' })
   user: User;
 
   //DO NOT UPDATE without migration script

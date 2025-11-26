@@ -249,6 +249,40 @@ describe('RiderService', () => {
       expect(result).toBe('rider-busy-1');
     });
 
+    it('should choose nearest rider among dummy nearby riders with varied active orders', async () => {
+      const pickupLocation: [number, number] = [3.3792, 6.5244];
+
+      // Dummy nearby riders with varied active order counts
+      const mockRiders = [
+        {
+          userId: 'rider-nearby-1',
+          latitude: '6.5250',
+          longitude: '3.3795',
+          activeOrderCount: '4',
+        },
+        {
+          userId: 'rider-nearby-2',
+          latitude: '6.5245',
+          longitude: '3.3793',
+          activeOrderCount: '2',
+        },
+        {
+          userId: 'rider-far',
+          latitude: '6.6000',
+          longitude: '3.4000',
+          activeOrderCount: '0',
+        },
+      ];
+
+      // Return these riders as the query result
+      mockQueryBuilder.getRawMany.mockResolvedValue(mockRiders);
+
+      const result = await service.getRiderForOrder([], pickupLocation);
+
+      // rider-nearby-2 is the closest and should be selected regardless of order counts
+      expect(result).toBe('rider-nearby-2');
+    });
+
     it('should filter riders without latitude or longitude', async () => {
       const pickupLocation: [number, number] = [3.3792, 6.5244];
 

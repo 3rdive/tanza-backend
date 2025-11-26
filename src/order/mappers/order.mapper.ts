@@ -71,12 +71,17 @@ export class OrderMapper {
     return new OrderPreview(
       order.id,
       order?.orderTracking?.[0]?.status,
-      order.pickUpLocation.address,
-      order.dropOffLocation.address,
+      order.pickUpLocation?.address || null,
+      // For multiple deliveries, prefer the first delivery destination address as the preview dropoff
+      (order.hasMultipleDeliveries &&
+        order.deliveryDestinations?.[0]?.dropOffLocation?.address) ||
+        order.dropOffLocation?.address ||
+        null,
       order.userOrderRole,
       order.deliveryFee,
       order.updatedAt,
       order.eta,
+      order.hasMultipleDeliveries || false,
       order.hasRewardedRider,
     );
   }
@@ -105,7 +110,11 @@ export class OrderMapper {
         '',
       profilePicUrl: order.user?.profilePic || '',
       pickUpLocation: order.pickUpLocation,
-      dropOffLocation: order.dropOffLocation,
+      // For multiple deliveries send a representative dropOffLocation (first destination) for backward compatibility
+      dropOffLocation:
+        (order.hasMultipleDeliveries &&
+          order.deliveryDestinations?.[0]?.dropOffLocation) ||
+        order.dropOffLocation,
       orderTracking:
         order.orderTracking
           ?.slice()
@@ -124,6 +133,20 @@ export class OrderMapper {
       createdAt: order.createdAt,
       sender: order.sender,
       recipient: order.recipient,
+      // Multiple delivery support
+      hasMultipleDeliveries: order.hasMultipleDeliveries || false,
+      deliveryDestinations:
+        order.deliveryDestinations?.map((d) => ({
+          id: d.id,
+          dropOffLocation: d.dropOffLocation,
+          recipient: d.recipient,
+          distanceFromPickupKm: d.distanceFromPickupKm,
+          durationFromPickup: d.durationFromPickup,
+          deliveryFee: d.deliveryFee,
+          delivered: d.delivered,
+          deliveredAt: d.deliveredAt,
+          createdAt: d.createdAt,
+        })) || [],
     };
   }
 
@@ -149,11 +172,28 @@ export class OrderMapper {
         '',
       profilePicUrl: order.user?.profilePic || '',
       pickUpLocation: order.pickUpLocation,
-      dropOffLocation: order.dropOffLocation,
+      // use first delivery destination as representative dropOffLocation when multiple deliveries exist
+      dropOffLocation:
+        (order.hasMultipleDeliveries &&
+          order.deliveryDestinations?.[0]?.dropOffLocation) ||
+        order.dropOffLocation,
       eta: order.eta,
       distanceInKm: order.distanceInKm || 0,
       isUrgent: order.isUrgent || false,
       amount: order.totalAmount,
+      hasMultipleDeliveries: order.hasMultipleDeliveries || false,
+      deliveryDestinations:
+        order.deliveryDestinations?.map((d) => ({
+          id: d.id,
+          dropOffLocation: d.dropOffLocation,
+          recipient: d.recipient,
+          distanceFromPickupKm: d.distanceFromPickupKm,
+          durationFromPickup: d.durationFromPickup,
+          deliveryFee: d.deliveryFee,
+          delivered: d.delivered,
+          deliveredAt: d.deliveredAt,
+          createdAt: d.createdAt,
+        })) || [],
     };
   }
 

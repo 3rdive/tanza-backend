@@ -24,6 +24,7 @@ import { OrderService } from './order.service';
 import { CalculateDeliveryChargesUsecase } from './usecasses/calculate-delivery-charges.usecase';
 import { CreateOrderUsecase } from './usecasses/create-order.usecase';
 import { SearchAddressBookDto } from './dto/search-address-book.dto';
+import { MarkDestinationDeliveredDto } from './dto/mark-destination-delivered.dto';
 
 @Controller(BaseUrl.ORDER)
 export class OrderController {
@@ -143,6 +144,12 @@ export class OrderController {
     @Query() dto: SearchAddressBookDto,
   ) {
     return this.orderService.getAddressBook(user.sub, dto);
+  }
+
+  @Roles(Role.RIDER)
+  @Post('destination/delivered')
+  async markDestinationDelivered(@Body() dto: MarkDestinationDeliveredDto) {
+    return this.orderService.markDestinationDelivered(dto);
   }
 
   //this should come last to avoid route conflicts

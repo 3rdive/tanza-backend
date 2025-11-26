@@ -52,6 +52,7 @@ pids
 *.seed
 *.pid.lock
 
+.zed/
 # Diagnostic reports (https://nodejs.org/api/report.html)
 report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
 
@@ -59,3 +60,4 @@ report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
 # app
 /uploads
 /uploads/**
+data.json

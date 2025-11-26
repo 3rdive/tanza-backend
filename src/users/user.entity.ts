@@ -60,8 +60,7 @@ export class User {
   @Column({ nullable: true })
   walletId: string;
 
-  @OneToOne(() => Wallets)
-  @JoinColumn()
+  @OneToOne(() => Wallets, (wallet) => wallet.user)
   wallet: Wallets;
 
   @OneToMany(() => Order, (order) => order.user)

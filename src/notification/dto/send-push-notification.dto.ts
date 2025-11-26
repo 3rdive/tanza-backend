@@ -1,4 +1,10 @@
-import { IsString, IsNotEmpty, IsOptional, IsArray } from 'class-validator';
+import {
+  IsString,
+  IsNotEmpty,
+  IsOptional,
+  IsArray,
+  IsObject,
+} from 'class-validator';
 
 export class SendPushNotificationDto {
   @IsString()
@@ -14,7 +20,7 @@ export class SendPushNotificationDto {
   userId: string;
 
   @IsOptional()
-  @IsString()
+  @IsObject()
   data?: any;
 }
 
@@ -33,6 +39,6 @@ export class SendBulkPushNotificationDto {
   userIds: string[];
 
   @IsOptional()
-  @IsString()
+  @IsObject()
   data?: any;
 }

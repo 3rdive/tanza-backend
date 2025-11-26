@@ -6,10 +6,12 @@ import {
   ValidateNested,
   IsArray,
   ArrayMinSize,
+  IsDefined,
+  IsNumber,
+  ValidateIf,
 } from 'class-validator';
 import { Type } from 'class-transformer';
 import { UserOrderRole } from '../entities/user-order-role.enum';
-import { VehicleType } from '../entities/vehicle-type.enum';
 
 class PartyInfoDto {
   @IsString()
@@ -68,4 +70,10 @@ export class CreateMultipleDeliveryOrderDto {
 
   @IsOptional()
   isUrgent?: boolean;
+
+  @ValidateIf((o) => o.isUrgent === true)
+  @IsDefined({ message: 'urgencyFee is required when isUrgent is true' })
+  @IsNumber({}, { message: 'urgencyFee must be a number' })
+  @Type(() => Number)
+  urgencyFee?: number;
 }

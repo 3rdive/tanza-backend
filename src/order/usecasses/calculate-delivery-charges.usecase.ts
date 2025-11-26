@@ -22,7 +22,7 @@ export class CalculateDeliveryChargesUsecase {
     isUrgent: boolean = false,
     urgencyFee: number,
   ): Promise<DeliveryFeeResult> {
-    const { distance_in_km, duration_in_words } =
+    const { distanceKm, durationHuman } =
       await this.locationService.calculateDistance(start, end);
 
     const bikeChargePerKM = this.configService.get<number>(
@@ -41,8 +41,8 @@ export class CalculateDeliveryChargesUsecase {
     // Distance already calculated via map API above
 
     let deliveryFee = NumberUtil.multiply(
-      distance_in_km,
-      distance_in_km > 5 ? vanChargePerKM : bikeChargePerKM,
+      distanceKm,
+      distanceKm > 5 ? vanChargePerKM : bikeChargePerKM,
     );
 
     // Add urgent fee if order is urgent
@@ -60,8 +60,8 @@ export class CalculateDeliveryChargesUsecase {
       totalAmount: totalAmount,
       deliveryFee: deliveryFee,
       serviceCharge: serviceChargeAmount,
-      duration: duration_in_words,
-      distanceInKm: distance_in_km,
+      duration: durationHuman,
+      distanceInKm: distanceKm,
     };
   }
 
@@ -75,20 +75,16 @@ export class CalculateDeliveryChargesUsecase {
       throw new Error('At least one delivery location is required');
     }
 
+    // Rates: rider (bike) and driver (van). Bicycle-specific rate is not used for vehicle selection.
     const bikeChargePerKM = this.configService.get<number>(
       'RIDER_RATE_PER_KM',
       200,
     );
 
-    const bicycleChargePerKM = this.configService.get<number>(
-      'BICYCLE_RATE_PER_KM',
-      200,
+    const vanChargePerKM = this.configService.get<number>(
+      'DRIVER_RATE_PER_KM',
+      300,
     );
-
-    // const vanChargePerKM = this.configService.get<number>(
-    //   'DRIVER_RATE_PER_KM',
-    //   200,
-    // );
 
     const serviceChargepercent = this.configService.get<number>(
       'SERVICE_CHARGE_PERCENT',
@@ -108,7 +104,7 @@ export class CalculateDeliveryChargesUsecase {
 
     // First pass: calculate all distances and find maximum
     for (const deliveryLocation of deliveryLocations) {
-      const { distance_in_km, duration_in_words } =
+      const { distanceKm, durationHuman } =
         await this.locationService.calculateDistance(
           pickupLocation,
           deliveryLocation,
@@ -116,17 +112,18 @@ export class CalculateDeliveryChargesUsecase {
 
       deliveryDistances.push({
         location: deliveryLocation,
-        distance_in_km,
-        duration_in_words,
+        distance_in_km: distanceKm,
+        duration_in_words: durationHuman,
       });
 
       // Track the maximum distance to determine vehicle type
-      maxDistanceFromPickup = Math.max(maxDistanceFromPickup, distance_in_km);
+      maxDistanceFromPickup = Math.max(maxDistanceFromPickup, distanceKm);
     }
 
-    // Determine vehicle type based on maximum distance
+    // Determine vehicle type based on maximum distance.
+    // If any delivery is > 5km, use van (driver) rate; otherwise use rider (bike) rate.
     const chargePerKM =
-      maxDistanceFromPickup > 5 ? bikeChargePerKM : bicycleChargePerKM;
+      maxDistanceFromPickup > 5 ? vanChargePerKM : bikeChargePerKM;
 
     // Second pass: calculate fees using the determined rate
     for (const deliveryData of deliveryDistances) {
@@ -173,7 +170,7 @@ export class CalculateDeliveryChargesUsecase {
       totalDistanceKm,
       estimatedTotalDuration,
       vehicleType:
-        maxDistanceFromPickup > 5 ? VehicleType.BIKE : VehicleType.BICYCLE,
+        maxDistanceFromPickup > 5 ? VehicleType.VAN : VehicleType.BIKE,
     };
   }
 }

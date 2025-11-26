@@ -17,10 +17,26 @@ export class ActiveOrder {
   amount: number;
   eta: string | null;
   createdAt: Date;
+
+  // Multiple delivery support
+  hasMultipleDeliveries?: boolean;
+  deliveryDestinations?: DeliveryDestinationDto[];
 }
 
 export class OrderTrackingDto {
   id: string;
   status: TrackingStatus;
+  createdAt: Date;
+}
+
+export class DeliveryDestinationDto {
+  id: string;
+  dropOffLocation: OrderLocation;
+  recipient: UserInfo;
+  distanceFromPickupKm: number;
+  durationFromPickup: string;
+  deliveryFee: number;
+  delivered: boolean;
+  deliveredAt?: Date;
   createdAt: Date;
 }

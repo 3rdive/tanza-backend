@@ -8,11 +8,13 @@ import axios, { AxiosError } from 'axios';
 import { ConfigService } from '@nestjs/config';
 import { StandardResponse } from '../commons/standard-response';
 import {
-  PhotonFeature,
-  PhotonResponse,
-  NominatimReverseResult,
-  OrsDirectionsResponse,
-  OrsRoute,
+  PhotonResponseRaw,
+  NominatimReverseRaw,
+  OrsDirectionsResponseRaw,
+  OrsRouteRaw,
+  SearchLocationResultDto,
+  ReverseGeocodeDto,
+  DistanceResultDto,
 } from './location.dto';
 
 @Injectable()
@@ -31,13 +33,13 @@ export class LocationService {
     this.PHOTON_URL = this.config.get<string>('PHOTON_URL');
   }
 
-  async searchLocation(query: string): Promise<PhotonFeature[]> {
+  async searchLocation(query: string): Promise<SearchLocationResultDto[]> {
     if (!query || !query.trim()) {
       throw new BadRequestException('Query parameter q is required');
     }
 
     try {
-      const response = await axios.get<PhotonResponse>(this.PHOTON_URL!, {
+      const response = await axios.get<PhotonResponseRaw>(this.PHOTON_URL!, {
         params: {
           q: query,
           limit: 5,
@@ -45,7 +47,28 @@ export class LocationService {
         },
       });
 
-      return response.data.features;
+      const raw = response.data;
+      console.log(JSON.stringify(raw));
+
+      const features = raw?.features ?? [];
+      const results: SearchLocationResultDto[] = features.map((f) => {
+        const coords = f.geometry?.coordinates ?? [0, 0];
+        const [lon, lat] = coords;
+        return {
+          name: f.properties?.name ?? f.properties?.street,
+          description: f.properties?.name ?? f.properties?.city,
+          country: f.properties?.country,
+          state: f.properties?.state,
+          city: f.properties?.city,
+          street: f.properties?.street,
+          postcode: f.properties?.postcode,
+          latitude: Number(lat),
+          longitude: Number(lon),
+          countrycode: f.properties?.countrycode,
+        };
+      });
+
+      return results;
     } catch (err) {
       const e = err as AxiosError;
       throw new InternalServerErrorException(
@@ -54,10 +77,7 @@ export class LocationService {
     }
   }
 
-  async reverseGeocode(
-    lat: number,
-    lon: number,
-  ): Promise<NominatimReverseResult> {
+  async reverseGeocode(lat: number, lon: number): Promise<ReverseGeocodeDto> {
     if (lat === undefined || lon === undefined) {
       throw new BadRequestException('lat and lon are required');
     }
@@ -66,7 +86,7 @@ export class LocationService {
     }
 
     try {
-      const response = await axios.get<NominatimReverseResult>(
+      const response = await axios.get<NominatimReverseRaw>(
         `${this.NOMINATIM_URL}/reverse`,
         {
           params: {
@@ -77,7 +97,18 @@ export class LocationService {
         },
       );
 
-      return response.data;
+      const raw = response.data;
+
+      return {
+        displayName: raw?.display_name ?? '',
+        country: raw?.address?.country,
+        state: raw?.address?.state,
+        city: raw?.address?.city,
+        street: raw?.address?.street,
+        postcode: raw?.address?.postcode,
+        countryCode: raw?.address?.country_code,
+        houseNumber: raw?.address?.house_number,
+      };
     } catch (err) {
       const e = err as AxiosError;
       throw new InternalServerErrorException(
@@ -93,19 +124,13 @@ export class LocationService {
       | 'driving-car'
       | 'cycling-regular'
       | 'foot-walking' = 'cycling-regular',
-  ): Promise<{
-    distance_meters: number;
-    distance_in_km: number;
-    duration_seconds: number;
-    duration_in_words: string;
-    geometry?: unknown;
-  }> {
+  ): Promise<DistanceResultDto> {
     if (!this.ORS_API_KEY) {
       throw new InternalServerErrorException('ORS_API_KEY is not configured');
     }
 
     try {
-      const response = await axios.post<OrsDirectionsResponse>(
+      const response = await axios.post<OrsDirectionsResponseRaw>(
         `${this.ORS_URL}/v2/directions/${mode}`,
         {
           coordinates: [start, end],
@@ -118,18 +143,22 @@ export class LocationService {
         },
       );
 
-      const route: OrsRoute | undefined = response.data?.routes?.[0];
+      const route: OrsRouteRaw | undefined = response.data?.routes?.[0];
       if (!route) {
         throw new BadRequestException(
           StandardResponse.fail('No route returned from OpenRouteService'),
         );
       }
+
+      const distance = route.summary?.distance ?? 0;
+      const duration = route.summary?.duration ?? 0;
+
       return {
-        distance_meters: route.summary?.distance,
-        distance_in_km: route.summary?.distance / 1000,
-        duration_seconds: route.summary?.duration,
-        duration_in_words: this.secondsToWords(route.summary?.duration),
-        geometry: route.geometry, // polyline for map if needed
+        mode,
+        distanceMeters: distance,
+        distanceKm: distance / 1000,
+        durationSeconds: duration,
+        durationHuman: this.secondsToWords(duration),
       };
     } catch (err) {
       const e = err as AxiosError<any>;

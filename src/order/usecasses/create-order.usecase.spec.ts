@@ -11,6 +11,7 @@ import { DeliveryDestination } from '../entities/delivery-destination.entity';
 import { CreateMultipleDeliveryOrderDto } from '../dto/create-multiple-delivery-order.dto';
 import { UserOrderRole } from '../entities/user-order-role.enum';
 import { VehicleType } from '../entities/vehicle-type.enum';
+import { RiderService } from '../../users/services/rider.service';
 
 describe('CreateOrderUsecase', () => {
   let usecase: CreateOrderUsecase;
@@ -70,6 +71,12 @@ describe('CreateOrderUsecase', () => {
           useValue: mockWalletService,
         },
         {
+          provide: RiderService,
+          useValue: {
+            getRiderForOrder: jest.fn(),
+          },
+        },
+        {
           provide: DataSource,
           useValue: mockDataSource,
         },
@@ -120,7 +127,6 @@ describe('CreateOrderUsecase', () => {
           },
         ],
         userOrderRole: UserOrderRole.SENDER,
-        vehicleType: VehicleType.BIKE,
         noteForRider: 'Handle with care',
         isUrgent: false,
       };
@@ -146,7 +152,7 @@ describe('CreateOrderUsecase', () => {
         ],
         totalDistanceKm: 6.4,
         estimatedTotalDuration: '20 minutes',
-        vehicleType: 'bike' as const,
+        vehicleType: VehicleType.BIKE,
       };
 
       calculateDeliveryChargesUsecase.calculateMultipleDeliveryFee.mockResolvedValue(
@@ -230,7 +236,6 @@ describe('CreateOrderUsecase', () => {
           },
         ],
         userOrderRole: UserOrderRole.SENDER,
-        vehicleType: VehicleType.BIKE,
       };
 
       const mockChargeResult = {
@@ -248,7 +253,7 @@ describe('CreateOrderUsecase', () => {
         ],
         totalDistanceKm: 2.3,
         estimatedTotalDuration: '8 minutes',
-        vehicleType: 'bike' as const,
+        vehicleType: VehicleType.BIKE,
       };
 
       calculateDeliveryChargesUsecase.calculateMultipleDeliveryFee.mockResolvedValue(

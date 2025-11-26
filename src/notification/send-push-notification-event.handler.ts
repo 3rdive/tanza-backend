@@ -41,6 +41,7 @@ export class SendPushNotificationEventHandler
         title: event.title,
         body: event.body,
         sound: 'default',
+        data: event.data ?? { route: '(tabs)' },
       };
 
       const response = await fetch('https://exp.host/--/api/v2/push/send', {

@@ -17,7 +17,6 @@ import { Order } from '../entities/order.entity';
 import { TrackingStatus } from '../entities/tracking-status.enum';
 import { UserOrderRole } from '../entities/user-order-role.enum';
 import { CalculateDeliveryChargesUsecase } from './calculate-delivery-charges.usecase';
-import { VehicleType } from '../entities/vehicle-type.enum';
 import { RiderService } from '../../users/services/rider.service';
 
 @Injectable()
@@ -42,7 +41,7 @@ export class CreateOrderUsecase {
     userId: string,
     dto: CreateMultipleDeliveryOrderDto,
   ): Promise<StandardResponse<Order>> {
-    const urgencyFee = 500; // Can be configurable
+    const urgencyFee = dto.urgencyFee || 0; // Can be configurable
 
     // Calculate delivery charges for multiple destinations
     const deliveryLocations = dto.deliveryLocations.map(

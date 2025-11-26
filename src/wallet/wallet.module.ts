@@ -17,6 +17,7 @@ import { WalletService } from './services/wallet.service';
 import { WithdrawalOptions } from './entities/withdrawal-options.entity';
 import { WithdrawalOptionsService } from './services/withdrawal-options.service';
 import { WithdrawalOptionsController } from './controllers/withdrawal-options.controller';
+import { RiderPayoutsService } from './services/rider-payouts.service';
 
 @Module({
   imports: [
@@ -36,6 +37,7 @@ import { WithdrawalOptionsController } from './controllers/withdrawal-options.co
     CreateTransactionEventHandler,
     WithdrawalOptionsService,
     BankService,
+    RiderPayoutsService,
   ],
   controllers: [
     WalletController,

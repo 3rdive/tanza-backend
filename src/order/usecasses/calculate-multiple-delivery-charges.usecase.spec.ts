@@ -2,6 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { ConfigService } from '@nestjs/config';
 import { CalculateDeliveryChargesUsecase } from './calculate-delivery-charges.usecase';
 import { LocationService } from '../../location/location.service';
+import { VehicleType } from '../entities/vehicle-type.enum';
 
 describe('CalculateDeliveryChargesUsecase - Multiple Delivery', () => {
   let usecase: CalculateDeliveryChargesUsecase;
@@ -91,7 +92,7 @@ describe('CalculateDeliveryChargesUsecase - Multiple Delivery', () => {
       expect(result.pickupLocation).toEqual(pickupLocation);
       expect(result.totalDistanceKm).toBeCloseTo(6.4, 1);
       expect(result.estimatedTotalDuration).toBe('20 minutes');
-      expect(result.vehicleType).toBe('bike');
+      expect(result.vehicleType).toBe(VehicleType.BIKE);
       expect(result.deliveries).toHaveLength(2);
       expect(result.deliveries[0].deliveryFee).toBeCloseTo(460, 0);
       expect(result.deliveries[1].deliveryFee).toBeCloseTo(820, 0);
@@ -125,7 +126,7 @@ describe('CalculateDeliveryChargesUsecase - Multiple Delivery', () => {
         0,
       );
 
-      expect(result.vehicleType).toBe('van');
+      expect(result.vehicleType).toBe(VehicleType.VAN);
       expect(result.totalDeliveryFee).toBe(2430); // (2.3 * 300) + (5.8 * 300)
       expect(result.deliveries[0].deliveryFee).toBe(690); // 2.3 * 300 (van rate)
       expect(result.deliveries[1].deliveryFee).toBe(1740); // 5.8 * 300 (van rate)
