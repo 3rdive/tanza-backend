@@ -61,10 +61,11 @@ describe('CalculateDeliveryChargesUsecase - Single Delivery', () => {
       const end: [number, number] = [3.1401, 6.5186];
 
       locationService.calculateDistance.mockResolvedValueOnce({
-        distance_in_km: 3.2,
-        duration_in_words: '10 minutes',
-        distance_meters: 3200,
-        duration_seconds: 600,
+        distanceKm: 3.2,
+        durationHuman: '10 minutes',
+        distanceMeters: 3200,
+        durationSeconds: 600,
+        mode: 'cycling-regular',
       });
 
       const result = await usecase.calculateDeliveryFee(start, end, false, 0);
@@ -81,10 +82,11 @@ describe('CalculateDeliveryChargesUsecase - Single Delivery', () => {
       const end: [number, number] = [3.1401, 6.5186];
 
       locationService.calculateDistance.mockResolvedValueOnce({
-        distance_in_km: 7.5,
-        duration_in_words: '22 minutes',
-        distance_meters: 7500,
-        duration_seconds: 1320,
+        distanceKm: 7.5,
+        durationHuman: '22 minutes',
+        distanceMeters: 7500,
+        durationSeconds: 1320,
+        mode: 'cycling-regular',
       });
 
       const result = await usecase.calculateDeliveryFee(start, end, false, 0);
@@ -100,10 +102,11 @@ describe('CalculateDeliveryChargesUsecase - Single Delivery', () => {
       const end: [number, number] = [3.1401, 6.5186];
 
       locationService.calculateDistance.mockResolvedValueOnce({
-        distance_in_km: 3.2,
-        duration_in_words: '10 minutes',
-        distance_meters: 3200,
-        duration_seconds: 600,
+        distanceKm: 3.2,
+        durationHuman: '10 minutes',
+        distanceMeters: 3200,
+        durationSeconds: 600,
+        mode: 'cycling-regular',
       });
 
       const result = await usecase.calculateDeliveryFee(start, end, true, 500);

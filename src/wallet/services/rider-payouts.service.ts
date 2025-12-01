@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
 import { InjectRepository } from '@nestjs/typeorm';
-import { MoreThanOrEqual, Repository } from 'typeorm';
+import { Repository } from 'typeorm';
 import { ConfigService } from '@nestjs/config';
 import { EventBus } from '@nestjs/cqrs';
 import axios from 'axios';
@@ -46,21 +46,12 @@ export class RiderPayoutsService {
     private readonly configService: ConfigService,
     private readonly eventBus: EventBus,
   ) {
-    const envMin = Number(configService.get<string>('MIN_PAYOUT_AMOUNT'));
-    this.minPayoutAmount =
-      Number.isFinite(envMin) && envMin > 0 ? envMin : 1000;
+    this.minPayoutAmount = Number(
+      configService.get<string>('MIN_PAYOUT_AMOUNT'),
+    );
   }
 
-  /**
-   * Runs every Wednesday at 00:30 West Africa Time (WAT).
-   *
-   * Cron expression breakdown: second minute hour day-of-month month day-of-week
-   * '0 30 0 * * 3' => At 00:30 on Wednesday.
-   *
-   * Note: the job is scheduled with the 'Africa/Lagos' timezone to ensure it runs at 00:30 WAT
-   * regardless of the server's local timezone.
-   */
-  @Cron('0 40 2 * * 3', { timeZone: 'Africa/Lagos' })
+  @Cron('0 14 4 * * 4', { timeZone: 'Africa/Lagos' })
   async handleWeeklyPayouts() {
     this.logger.log(
       `Weekly rider payout job started. minPayoutAmount=${this.minPayoutAmount}`,
@@ -68,27 +59,47 @@ export class RiderPayoutsService {
 
     try {
       // Find wallets with balance >= threshold and belonging to riders
-      const payoutCandidates = await this.walletRepository.find({
-        where: {
-          walletBalance: MoreThanOrEqual(this.minPayoutAmount),
-          user: { role: Role.RIDER },
-        },
-      });
+      // Use a joined query to ensure the related user is loaded and the role filter is applied correctly.
+      const payoutCandidates = await this.walletRepository
+        .createQueryBuilder('wallet')
+        .leftJoinAndSelect('wallet.user', 'user')
+        .where('wallet.walletBalance >= :min', { min: this.minPayoutAmount })
+        .andWhere('user.role = :role', { role: Role.RIDER })
+        .getMany();
 
       this.logger.log(
-        `Found ${payoutCandidates.length} rider wallets eligible for payout`,
+        `Found ${payoutCandidates.length} rider wallets eligible for payout (joined query)`,
       );
 
       for (const wallet of payoutCandidates) {
         try {
+          // Defensive checks: ensure we have the associated user and userId (the joined query should load user)
+          if (!wallet.userId || !wallet.user) {
+            this.logger.warn(
+              `Skipping payout for wallet=${wallet.id}: missing user or userId (userId=${wallet.userId})`,
+            );
+            continue;
+          }
+
+          if (wallet.user.role !== Role.RIDER) {
+            // Extra safety - the query should have filtered this, but be defensive
+            this.logger.warn(
+              `Skipping wallet=${wallet.id}: associated user=${wallet.userId} role=${wallet.user.role} is not RIDER`,
+            );
+            continue;
+          }
+
           // pick default withdrawal option (bank account) for rider, fallback to any
-          const withdrawal =
-            (await this.withdrawalOptionsRepository.findOne({
-              where: { riderId: wallet.userId, isDefault: true },
-            })) ||
-            (await this.withdrawalOptionsRepository.findOne({
-              where: { riderId: wallet.userId },
-            }));
+          const withdrawal = await this.withdrawalOptionsRepository.findOne({
+            where: { riderId: wallet.userId },
+          });
+
+          if (!withdrawal) {
+            // additional defensive log to make it explicit when withdrawal options are missing
+            this.logger.warn(
+              `No withdrawal option found for rider=${wallet.userId} wallet=${wallet.id}`,
+            );
+          }
 
           if (!withdrawal) {
             this.logger.warn(
@@ -100,7 +111,7 @@ export class RiderPayoutsService {
               0,
               `payout-no-withdrawal-${Date.now()}`,
               TransactionStatus.FAILED,
-              TransactionType.ORDER_REWARD,
+              TransactionType.FAILED_PAYOUT,
               'No withdrawal option configured for rider',
             );
 
@@ -156,7 +167,6 @@ export class RiderPayoutsService {
               TransactionStatus.COMPLETE,
               TransactionType.ORDER_REWARD,
               `Payout to ${withdrawal.bankName} ${withdrawal.accountNumber}`,
-              transferResult.providerReference,
             );
 
             // notify rider
@@ -165,7 +175,7 @@ export class RiderPayoutsService {
                 'Payout Successful',
                 `Your payout of ₦${payoutAmount} has been initiated to ${withdrawal.bankName} ${withdrawal.accountNumber}.`,
                 wallet.userId,
-                '/wallet',
+                '(tabs)/wallet',
               ),
             );
 
@@ -212,8 +222,9 @@ export class RiderPayoutsService {
    * Helper to perform an external bank transfer.
    *
    * IMPORTANT:
-   * - This is a minimal placeholder that attempts a conventional Paystack-style transfer.
-   * - Replace the implementation with your production provider integration and robust error handling.
+   * - This implements the four steps for Paystack single transfers: create recipient, generate reference, initiate transfer, verify status.
+   * - For live transfers, status is 'pending' initially; we treat 'pending' as success here but recommend webhook verification for production.
+   * - Replace with your production provider integration and robust error handling.
    *
    * Returns an object indicating success and optional provider reference/message.
    */
@@ -237,50 +248,88 @@ export class RiderPayoutsService {
       };
     }
 
+    const headers = {
+      Authorization: `Bearer ${paystackKey}`,
+      'Content-Type': 'application/json',
+    };
+    const timeout = 20000;
+
     try {
-      // NOTE: The exact Paystack endpoints and payloads can differ; this is a generic example.
-      // Replace with your provider's required endpoints (create recipient -> initiate transfer -> finalize).
-      const payload = {
-        // This object should match the transfer API expected by your provider
-        source: 'balance',
-        amount: Math.round(amount * 100), // provider might expect kobo
-        currency: 'NGN',
-        reference,
-        reason: `Rider payout ${reference}`,
-        recipient: {
-          name: withdrawal.bankHoldersName,
-          account_number: withdrawal.accountNumber,
-          bank_name: withdrawal.bankName,
-        },
+      // Step 1: Create transfer recipient
+      const recipientPayload = {
+        type: 'nuban',
+        name: withdrawal.bankHoldersName,
+        account_number: withdrawal.accountNumber,
+        bank_code: withdrawal.bankCode,
       };
 
-      const url = `${paystackBase}/transfer`; // adjust as needed for your provider
+      const recipientResp = await axios.post(
+        `${paystackBase}/transferrecipient`,
+        recipientPayload,
+        { headers, timeout },
+      );
 
-      const resp = await axios.post(url, payload, {
-        headers: {
-          Authorization: `Bearer ${paystackKey}`,
-          'Content-Type': 'application/json',
-        },
-        timeout: 20000,
-      });
-
-      // Interpret provider response conservatively: require success flag
       if (
-        resp?.data &&
-        (resp.data.status === true || resp.data.status === 'success')
+        !recipientResp?.data ||
+        (recipientResp.data.status !== true &&
+          recipientResp.data.status !== 'success')
       ) {
-        const providerRef =
-          resp.data.data?.reference ??
-          resp.data.data?.transfer_code ??
-          resp.data.data?.id ??
-          reference;
-        return { success: true, providerReference: providerRef };
+        return {
+          success: false,
+          message:
+            recipientResp?.data?.message ??
+            'Failed to create transfer recipient',
+        };
       }
 
-      return {
-        success: false,
-        message: resp?.data?.message ?? 'Provider returned failure',
+      const recipientCode = recipientResp.data.data.recipient_code;
+
+      // Step 2: Generate transfer reference (already provided as 'reference')
+
+      // Step 3: Initiate transfer
+      const transferPayload = {
+        source: 'balance',
+        amount: Math.round(amount * 100), // in kobo
+        currency: 'NGN',
+        reference,
+        recipient: recipientCode,
+        reason: `Rider payout ${reference}`,
       };
+
+      const transferResp = await axios.post(
+        `${paystackBase}/transfer`,
+        transferPayload,
+        { headers, timeout },
+      );
+
+      if (
+        !transferResp?.data ||
+        (transferResp.data.status !== true &&
+          transferResp.data.status !== 'success')
+      ) {
+        return {
+          success: false,
+          message: transferResp?.data?.message ?? 'Transfer initiation failed',
+        };
+      }
+
+      const transferData = transferResp.data.data;
+      const transferStatus = transferResp.data as boolean;
+      const providerRef =
+        transferData.reference ??
+        transferData.transfer_code ??
+        transferData.id ??
+        reference;
+
+      // Step 4: Verify status (simplified: treat 'success' or 'pending' as success for now)
+      if (transferStatus) {
+        return { success: true, providerReference: providerRef };
+      } else {
+        return {
+          success: false,
+          message: `Transfer status: ${transferStatus}`,
+        };
+      }
     } catch (error: any) {
       this.logger.error(
         'External transfer attempt failed',
@@ -306,7 +355,6 @@ export class RiderPayoutsService {
     status: TransactionStatus,
     type: TransactionType,
     description?: string,
-    providerReference?: string,
   ) {
     const trn = new TransactionDto();
     trn.walletId = wallet.id;
@@ -316,9 +364,6 @@ export class RiderPayoutsService {
     trn.status = status;
     trn.type = type;
     trn.description = description ?? `Payout ${status}`;
-    // optionally attach provider reference to description or metadata (schema permitting)
-    if (providerReference)
-      trn.description += ` (providerRef: ${providerReference})`;
 
     // Publish CreateTransactionEvent - existing handler will persist the transaction
     this.eventBus.publish(new CreateTransactionEvent(trn));

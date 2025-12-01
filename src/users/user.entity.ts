@@ -14,6 +14,7 @@ import { Transactions } from '../wallet/entities/transaction.entity';
 import { Wallets } from '../wallet/entities/wallet.entity';
 import { RegMode } from './reg-mode.enum';
 import { RiderInfo } from './rider-info.entity';
+import { ActiveStatus } from './active-status.entity';
 import { UserAddress } from './user-address';
 
 @Entity()
@@ -60,7 +61,8 @@ export class User {
   @Column({ nullable: true })
   walletId: string;
 
-  @OneToOne(() => Wallets, (wallet) => wallet.user)
+  @OneToOne(() => Wallets)
+  @JoinColumn()
   wallet: Wallets;
 
   @OneToMany(() => Order, (order) => order.user)
@@ -87,4 +89,7 @@ export class User {
 
   @OneToOne(() => RiderInfo, (riderInfo) => riderInfo.user)
   riderInfo: RiderInfo;
+
+  @OneToOne(() => ActiveStatus, (activeStatus) => activeStatus.user)
+  activeStatus: ActiveStatus;
 }

@@ -6,6 +6,7 @@ import { UserRegDto } from '../../auth/models/user-reg.dto';
 import { Role } from '../../auth/roles.enum';
 import { StandardResponse } from '../../commons/standard-response';
 import { OtpService } from '../../otp/services/otp.service';
+import { InitializeWalletEvent } from '../../wallet/events/models/initialize-wallet.event';
 import { InitRiderEvent } from '../init-rider.event';
 import { UserMapper } from '../user-mapper';
 import { User } from '../user.entity';
@@ -44,6 +45,8 @@ export class RegisterUseCase {
     if (role == Role.RIDER) {
       await this.eventBus.publish(new InitRiderEvent(savedUser.id));
     }
+
+    await this.eventBus.publish(new InitializeWalletEvent(savedUser.id, role));
 
     return savedUser;
   }

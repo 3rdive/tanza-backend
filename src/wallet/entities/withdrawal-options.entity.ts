@@ -22,6 +22,9 @@ export class WithdrawalOptions {
   @Column({ nullable: true })
   slug: string;
 
+  @Column({ nullable: true })
+  bankCode: string;
+
   @Column()
   accountNumber: string;
 

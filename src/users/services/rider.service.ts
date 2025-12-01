@@ -182,8 +182,8 @@ export class RiderService {
               'latest',
               'latest."orderId" = ot."orderId" AND latest."maxCreatedAt" = ot."createdAt"',
             ),
-        'latestTracking',
-        'latestTracking."orderId" = order.id',
+        'latesttracking',
+        'latesttracking."orderId" = order.id',
       )
       .where('riderInfo.documentStatus = :approvedStatus', {
         approvedStatus: DocumentStatus.APPROVED,
@@ -227,13 +227,13 @@ export class RiderService {
     }
 
     // Select fields and compute active order count in the same query
-    let riders = await query
+    const baseQuery = query
       .select('activeStatus.userId', 'userId')
       .addSelect('activeStatus.latitude', 'latitude')
       .addSelect('activeStatus.longitude', 'longitude')
       .addSelect(
         `COUNT(CASE
-          WHEN latestTracking."latestStatus" NOT IN ('${TrackingStatus.DELIVERED}', '${TrackingStatus.CANCELLED}')
+          WHEN latesttracking."latestStatus" NOT IN ('${TrackingStatus.DELIVERED}', '${TrackingStatus.CANCELLED}')
           THEN 1
         END)`,
         'activeOrderCount',
@@ -241,14 +241,18 @@ export class RiderService {
       .groupBy('activeStatus.userId')
       .addGroupBy('activeStatus.latitude')
       .addGroupBy('activeStatus.longitude')
+      .limit(100); // Limit to top 100 candidates for distance calculation
+
+    // First attempt: riders with active orders < MAX_ACTIVE_ORDERS
+    let riders = await baseQuery
+      .clone()
       .having(
         `COUNT(CASE
-          WHEN latestTracking."latestStatus" NOT IN ('${TrackingStatus.DELIVERED}', '${TrackingStatus.CANCELLED}')
+          WHEN latesttracking."latestStatus" NOT IN ('${TrackingStatus.DELIVERED}', '${TrackingStatus.CANCELLED}')
           THEN 1
         END) < :maxOrders`,
         { maxOrders: MAX_ACTIVE_ORDERS },
       )
-      .limit(100) // Limit to top 100 candidates for distance calculation
       .getRawMany();
 
     this.logger.debug(
@@ -260,15 +264,15 @@ export class RiderService {
       this.logger.debug(
         'No riders under max active orders threshold, retrying including busy riders',
       );
-      riders = await query
+      riders = await baseQuery
+        .clone()
         .having(
           `COUNT(CASE
-            WHEN latestTracking."latestStatus" NOT IN ('${TrackingStatus.DELIVERED}', '${TrackingStatus.CANCELLED}')
+            WHEN latesttracking."latestStatus" NOT IN ('${TrackingStatus.DELIVERED}', '${TrackingStatus.CANCELLED}')
             THEN 1
           END) >= :maxOrders`,
           { maxOrders: MAX_ACTIVE_ORDERS },
         )
-        .limit(100)
         .getRawMany();
 
       this.logger.debug(

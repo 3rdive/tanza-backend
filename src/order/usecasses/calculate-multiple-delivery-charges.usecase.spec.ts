@@ -67,16 +67,18 @@ describe('CalculateDeliveryChargesUsecase - Multiple Delivery', () => {
       // Mock distance calculations
       locationService.calculateDistance
         .mockResolvedValueOnce({
-          distance_in_km: 2.3,
-          duration_in_words: '8 minutes',
-          distance_meters: 2300,
-          duration_seconds: 480,
+          distanceKm: 2.3,
+          durationHuman: '8 minutes',
+          distanceMeters: 2300,
+          durationSeconds: 480,
+          mode: 'cycling-regular',
         })
         .mockResolvedValueOnce({
-          distance_in_km: 4.1,
-          duration_in_words: '12 minutes',
-          distance_meters: 4100,
-          duration_seconds: 720,
+          distanceKm: 4.1,
+          durationHuman: '12 minutes',
+          distanceMeters: 4100,
+          durationSeconds: 720,
+          mode: 'cycling-regular',
         });
 
       const result = await usecase.calculateMultipleDeliveryFee(
@@ -107,16 +109,18 @@ describe('CalculateDeliveryChargesUsecase - Multiple Delivery', () => {
 
       locationService.calculateDistance
         .mockResolvedValueOnce({
-          distance_in_km: 2.3,
-          duration_in_words: '8 minutes',
-          distance_meters: 2300,
-          duration_seconds: 480,
+          distanceKm: 2.3,
+          durationHuman: '8 minutes',
+          distanceMeters: 2300,
+          durationSeconds: 480,
+          mode: 'cycling-regular',
         })
         .mockResolvedValueOnce({
-          distance_in_km: 5.8,
-          duration_in_words: '18 minutes',
-          distance_meters: 5800,
-          duration_seconds: 1080,
+          distanceKm: 5.8,
+          durationHuman: '18 minutes',
+          distanceMeters: 5800,
+          durationSeconds: 1080,
+          mode: 'cycling-regular',
         });
 
       const result = await usecase.calculateMultipleDeliveryFee(
@@ -137,10 +141,11 @@ describe('CalculateDeliveryChargesUsecase - Multiple Delivery', () => {
       const deliveryLocations: [number, number][] = [[3.1401, 6.5186]];
 
       locationService.calculateDistance.mockResolvedValueOnce({
-        distance_in_km: 2.3,
-        duration_in_words: '8 minutes',
-        distance_meters: 2300,
-        duration_seconds: 480,
+        distanceKm: 2.3,
+        durationHuman: '8 minutes',
+        distanceMeters: 2300,
+        durationSeconds: 480,
+        mode: 'cycling-regular',
       });
 
       const result = await usecase.calculateMultipleDeliveryFee(

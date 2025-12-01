@@ -2,9 +2,12 @@ import {
   Column,
   CreateDateColumn,
   Entity,
+  JoinColumn,
+  ManyToOne,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
+import { User } from './user.entity';
 
 @Entity()
 export class ActiveStatus {
@@ -14,8 +17,12 @@ export class ActiveStatus {
   @Column({ type: 'enum', enum: ['active', 'inactive'] })
   status: 'active' | 'inactive';
 
-  @Column()
+  @Column({ nullable: true })
   userId: string;
+
+  @ManyToOne(() => User)
+  @JoinColumn({ name: 'userId' })
+  user: User;
 
   @Column({ nullable: true })
   latitude: string;

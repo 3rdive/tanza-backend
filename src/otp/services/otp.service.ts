@@ -22,6 +22,7 @@ export class OtpService {
   ) {}
 
   async createOtp(otpDto: OtpDto) {
+    await this.otpRepository.delete({ reference: otpDto.reference });
     const otp = new OtpsEntity();
     const code = this.generateFourDigitCode();
     otp.code = code;

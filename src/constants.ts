@@ -13,4 +13,5 @@ export const BaseUrl = {
   STORAGE: 'api/v1/storage-media',
   TASK: 'api/v1/task',
   NOTIFICATION: 'api/v1/notification',
+  TICKETS: 'api/v1/tickets',
 };

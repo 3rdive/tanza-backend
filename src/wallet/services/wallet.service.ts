@@ -43,7 +43,7 @@ export class WalletService {
 
     let dva: any;
     let virtualAccount: VirtualAccount | undefined;
-    if (role === Role.User) {
+    if (role === Role.User || role === Role.Admin) {
       dva = await this.payStackService.createWalletForUser(
         userId,
         user.email,
@@ -71,13 +71,13 @@ export class WalletService {
     return wallet;
   }
 
-  async getUserWallet(userId: string) {
+  async getUserWallet(userId: string, role = Role.User) {
     let wallet = await this.walletRepository.findOne({
       where: { userId },
     });
 
     if (!wallet) {
-      wallet = await this.initialiseWallet(userId, Role.User);
+      wallet = await this.initialiseWallet(userId, role);
     }
 
     return WalletMapper.mapToWalletDto(wallet);

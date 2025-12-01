@@ -7,6 +7,7 @@ import { TransactionController } from './controllers/transaction.controller';
 import { WalletController } from './controllers/wallet.controller';
 import { BankController } from './controllers/bank.controller';
 import { CreateTransactionEventHandler } from './events/handler/create-transaction-event.handler';
+import { InitializeWalletEventHandler } from './events/handler/initialize-wallet-event.handler';
 import { PayStackService } from './services/pay-stack.service';
 import { BankService } from './services/bank.service';
 import { Transactions } from './entities/transaction.entity';
@@ -35,6 +36,7 @@ import { RiderPayoutsService } from './services/rider-payouts.service';
     PayStackService,
     TransactionService,
     CreateTransactionEventHandler,
+    InitializeWalletEventHandler,
     WithdrawalOptionsService,
     BankService,
     RiderPayoutsService,

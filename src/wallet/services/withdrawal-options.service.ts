@@ -40,6 +40,7 @@ export class WithdrawalOptionsService {
       bankName: dto.bankName,
       accountNumber: dto.accountNumber,
       bankHoldersName: dto.bankHoldersName,
+      bankCode: dto.bankCode,
       isDefault: existing === 0,
       slug: dto.slug,
     });

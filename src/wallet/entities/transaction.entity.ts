@@ -24,7 +24,7 @@ export class Transactions {
   @ManyToOne(() => Wallets, (wallet) => wallet.transactions)
   wallet: Wallets;
 
-  @Column()
+  @Column({ nullable: true })
   userId: string;
 
   @ManyToOne(() => User, (user) => user.transactions)

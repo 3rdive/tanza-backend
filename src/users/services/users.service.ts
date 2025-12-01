@@ -27,6 +27,15 @@ export class UsersService {
     private readonly otpService: OtpService,
   ) {}
 
+  async existsOrFail(userId: string) {
+    const response = await this.userRepository.exists({
+      where: { id: userId },
+    });
+
+    if (!response) {
+      throw new BadRequestException(StandardResponse.fail('user not found'));
+    }
+  }
   async updateResetPassword(user: User, passwordResetDto: PasswordResetDto) {
     await this.otpService.clearOtp(
       passwordResetDto.reference,

@@ -57,6 +57,38 @@ export interface NominatimReverseRaw {
   [key: string]: any;
 }
 
+export interface NominatimSearchItemRaw {
+  place_id: number;
+  licence: string;
+  osm_type: string;
+  osm_id: number;
+  boundingbox: string[];
+  lat: string;
+  lon: string;
+  display_name: string;
+  class: string;
+  type: string;
+  importance: number;
+  icon?: string;
+  address: {
+    amenity?: string;
+    road?: string;
+    suburb?: string;
+    city_district?: string;
+    city?: string;
+    town?: string;
+    village?: string;
+    county?: string;
+    state?: string;
+    'ISO3166-2-lvl4'?: string;
+    postcode?: string;
+    country?: string;
+    country_code?: string;
+  };
+}
+
+export type NominatimSearchResponseRaw = NominatimSearchItemRaw[];
+
 /* OpenRouteService (ORS) raw types */
 
 export interface OrsRouteRaw {
@@ -93,6 +125,7 @@ export interface SearchLocationResultDto {
   postcode?: string;
   latitude: number;
   longitude: number;
+  countrycode?: string;
 }
 
 /**

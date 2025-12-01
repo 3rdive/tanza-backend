@@ -12,6 +12,7 @@ import { RiderGateway } from './riders.gateway';
 import { JwtModule } from '@nestjs/jwt';
 import { CalculateDeliveryChargesUsecase } from './usecasses/calculate-delivery-charges.usecase';
 import { CreateOrderUsecase } from './usecasses/create-order.usecase';
+import { OrderSchedulerService } from './order-scheduler.service';
 
 @Module({
   imports: [
@@ -27,6 +28,7 @@ import { CreateOrderUsecase } from './usecasses/create-order.usecase';
     CalculateDeliveryChargesUsecase,
     CreateOrderUsecase,
     RiderGateway,
+    OrderSchedulerService,
   ],
 })
 export class OrderModule {}

@@ -13,7 +13,7 @@ export class WalletController {
 
   @Get()
   async getWallet(@CurrentUser() user: JwtPayload) {
-    return this.walletService.getUserWallet(user.sub);
+    return this.walletService.getUserWallet(user.sub, user.role as Role);
   }
 
   @Roles(Role.RIDER)

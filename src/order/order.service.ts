@@ -150,11 +150,11 @@ export class OrderService {
       await this.assignRiderToOrder(saved.id);
       return StandardResponse.ok(saved, 'Order created successfully');
     } catch (error) {
-      await queryRunner.rollbackTransaction();
       this.logger.error(
         'Failed to create order',
         error?.stack || String(error),
       );
+      await queryRunner.rollbackTransaction();
       throw error;
     } finally {
       await queryRunner.release();

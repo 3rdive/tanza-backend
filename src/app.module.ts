@@ -19,6 +19,7 @@ import { StorageMediaModule } from './storage-media/storage-media.module';
 import { TaskModule } from './task/task.module';
 import { NotificationModule } from './notification/notification.module';
 import { AdminModule } from './admin/admin.module';
+import { TicketsModule } from './tickets/tickets.module';
 
 @Module({
   imports: [
@@ -57,6 +58,7 @@ import { AdminModule } from './admin/admin.module';
     ScheduleModule.forRoot(),
     StorageMediaModule,
     TaskModule,
+    TicketsModule,
     AdminModule,
     NotificationModule,
   ],
