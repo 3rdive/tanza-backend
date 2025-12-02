@@ -32,8 +32,8 @@ COPY --from=builder /app/dist ./dist
 # Create uploads directory
 RUN mkdir -p uploads
 
-# Expose the application port
-EXPOSE 3030
+# Expose the application port and websocket port
+EXPOSE 3030 3006
 
 # Start the application
 CMD ["npm", "run", "start:prod"]
