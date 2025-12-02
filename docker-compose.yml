@@ -1,0 +1,42 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: tanza-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: tanza_user
+      POSTGRES_PASSWORD: tanza_password
+      POSTGRES_DB: tanza_db
+    ports:
+      - '5432:5432'
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U tanza_user -d tanza_db']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: tanza-backend
+    restart: unless-stopped
+    ports:
+      - '3030:3030'
+    env_file:
+      - .env.production
+    environment:
+      # Override specific values for Docker
+      DB_HOST: postgres
+    volumes:
+      - ./uploads:/app/uploads
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+volumes:
+  postgres_data:
