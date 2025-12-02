@@ -10,4 +10,6 @@ async function bootstrap() {
   app.useGlobalInterceptors(new ResponseInterceptor());
   await app.listen(process.env.PORT ?? 3030);
 }
+
+//eslint-disable-next-line @typescript-eslint/no-floating-promises
 bootstrap();
