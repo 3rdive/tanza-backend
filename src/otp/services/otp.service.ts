@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
+import { EventBus } from '@nestjs/cqrs';
 import { StandardResponse } from '../../commons/standard-response';
 import { ConsumeOtp } from '../consume-otp.dto';
 import { UsersService } from '../../users/services/users.service';
@@ -19,6 +20,7 @@ export class OtpService {
     private readonly otpRepository: Repository<OtpsEntity>,
     @Inject(forwardRef(() => UsersService))
     private readonly userService: UsersService,
+    private readonly eventBus: EventBus,
   ) {}
 
   async createOtp(otpDto: OtpDto) {
@@ -32,10 +34,11 @@ export class OtpService {
       new Date().setMinutes(new Date().getMinutes() + 30), //30Mins from now
     );
 
-    new OtpCreateEvent(code, otpDto.reference);
     await this.otpRepository.save(otp);
     console.log(`Created Otp: ${otp.code} for ${otp.reference}`);
-    //send otp
+
+    // Trigger event to send OTP
+    this.eventBus.publish(new OtpCreateEvent(code, otpDto.reference));
   }
 
   async consumeOtp(consumeOtp: ConsumeOtp) {

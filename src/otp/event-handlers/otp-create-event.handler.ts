@@ -2,7 +2,7 @@ import { EventsHandler, IEventHandler } from '@nestjs/cqrs';
 import { OtpCreateEvent } from '../events/otp-create.event';
 import { TwilioService } from '../services/twilio.service';
 
-@EventsHandler()
+@EventsHandler(OtpCreateEvent)
 export class OtpCreateEventHandler implements IEventHandler<OtpCreateEvent> {
   constructor(private readonly smsSendingService: TwilioService) {}
   async handle(otpCreateEvent: OtpCreateEvent) {

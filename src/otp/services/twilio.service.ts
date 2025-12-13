@@ -17,10 +17,9 @@ export class TwilioService {
       const twilioMobileNumber =
         this.configService.get<string>('TWILIO_MOBILE');
       return this.client.messages.create({
-        from: `whatsapp:+${twilioMobileNumber}`,
-        to: `whatsapp:${to}`,
-        contentSid: this.configService.get<string>('TWILIO_CONTENT_SID'),
-        contentVariables: JSON.stringify({ otp_code: String(otpCode) }),
+        from: twilioMobileNumber,
+        to: `+234${to}`,
+        body: `Your OTP is ${otpCode}. Please do not share with anyone`,
       });
     } catch (err) {
       console.log(err);
