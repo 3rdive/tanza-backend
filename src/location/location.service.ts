@@ -24,6 +24,7 @@ export class LocationService {
   private readonly ORS_API_KEY: string | undefined;
   private readonly APP_USER_AGENT: string | undefined;
   private readonly PHOTON_URL: string | undefined;
+  private readonly MAP_API_KEY: string | undefined;
 
   constructor(private readonly config: ConfigService) {
     this.NOMINATIM_URL = this.config.get<string>('NOMINATIM_URL');
@@ -31,6 +32,7 @@ export class LocationService {
     this.ORS_API_KEY = this.config.get<string>('ORS_API_KEY');
     this.APP_USER_AGENT = this.config.get<string>('APP_USER_AGENT');
     this.PHOTON_URL = this.config.get<string>('PHOTON_URL');
+    this.MAP_API_KEY = this.config.get<string>('MAP_API_KEY');
   }
 
   async searchLocation(query: string): Promise<SearchLocationResultDto[]> {
@@ -38,41 +40,98 @@ export class LocationService {
       throw new BadRequestException('Query parameter q is required');
     }
 
+    if (!this.MAP_API_KEY) {
+      throw new InternalServerErrorException('MAP_API_KEY is not configured');
+    }
+
     try {
-      const response = await axios.get<PhotonResponseRaw>(this.PHOTON_URL!, {
-        params: {
-          q: query,
-          limit: 5,
-          lang: 'en',
+      // Use Google Maps Places API Autocomplete
+      const response = await axios.get(
+        'https://maps.googleapis.com/maps/api/place/autocomplete/json',
+        {
+          params: {
+            input: query,
+            key: this.MAP_API_KEY,
+            language: 'en',
+          },
         },
-      });
+      );
 
-      const raw = response.data;
-      console.log(JSON.stringify(raw));
+      // console.log('search_result: ', response);
 
-      const features = raw?.features ?? [];
-      const results: SearchLocationResultDto[] = features.map((f) => {
-        const coords = f.geometry?.coordinates ?? [0, 0];
-        const [lon, lat] = coords;
-        return {
-          name: f.properties?.name ?? f.properties?.street,
-          description: f.properties?.name ?? f.properties?.city,
-          country: f.properties?.country,
-          state: f.properties?.state,
-          city: f.properties?.city,
-          street: f.properties?.street,
-          postcode: f.properties?.postcode,
-          latitude: Number(lat),
-          longitude: Number(lon),
-          countrycode: f.properties?.countrycode,
-        };
-      });
+      const predictions = response.data?.predictions ?? [];
+
+      // Get details for each prediction to extract full address components
+      const results: SearchLocationResultDto[] = await Promise.all(
+        predictions.slice(0, 5).map(async (prediction: any) => {
+          try {
+            const detailsResponse = await axios.get(
+              'https://maps.googleapis.com/maps/api/place/details/json',
+              {
+                params: {
+                  place_id: prediction.place_id,
+                  fields: 'name,formatted_address,geometry,address_components',
+                  key: this.MAP_API_KEY,
+                },
+              },
+            );
+
+            const place = detailsResponse.data?.result;
+            const addressComponents = place?.address_components ?? [];
+
+            // Extract address components
+            const getComponent = (types: string[]) => {
+              const component = addressComponents.find((c: any) =>
+                types.some((type) => c.types.includes(type)),
+              );
+              return component?.long_name;
+            };
+
+            return {
+              name: place?.name ?? prediction.description,
+              description: place?.formatted_address ?? prediction.description,
+              country: getComponent(['country']),
+              state: getComponent(['administrative_area_level_1']),
+              city:
+                getComponent(['locality']) ??
+                getComponent(['administrative_area_level_2']),
+              street:
+                getComponent(['route']) ??
+                getComponent(['sublocality_level_1']),
+              postcode: getComponent(['postal_code']),
+              latitude: place?.geometry?.location?.lat ?? 0,
+              longitude: place?.geometry?.location?.lng ?? 0,
+              countrycode: addressComponents
+                .find((c: any) => c.types.includes('country'))
+                ?.short_name?.toLowerCase(),
+            };
+          } catch (detailError) {
+            // If details fail, return basic info from autocomplete
+            console.error('Failed to fetch place details:', detailError);
+            return {
+              name:
+                prediction.structured_formatting?.main_text ??
+                prediction.description,
+              description: prediction.description,
+              country: undefined,
+              state: undefined,
+              city: undefined,
+              street: undefined,
+              postcode: undefined,
+              latitude: 0,
+              longitude: 0,
+              countrycode: undefined,
+            };
+          }
+        }),
+      );
 
       return results;
     } catch (err) {
       const e = err as AxiosError;
+      console.error('Google Maps API error:', e.response?.data ?? e.message);
       throw new InternalServerErrorException(
-        `Photon search failed: ${e.message}`,
+        `Google Maps search failed: ${e.message}`,
       );
     }
   }
