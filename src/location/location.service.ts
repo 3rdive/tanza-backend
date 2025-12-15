@@ -144,34 +144,65 @@ export class LocationService {
       throw new BadRequestException('lat and lon must be numbers');
     }
 
+    if (!this.MAP_API_KEY) {
+      throw new InternalServerErrorException('MAP_API_KEY is not configured');
+    }
+
     try {
-      const response = await axios.get<NominatimReverseRaw>(
-        `${this.NOMINATIM_URL}/reverse`,
+      const response = await axios.get(
+        'https://maps.googleapis.com/maps/api/geocode/json',
         {
           params: {
-            lat,
-            lon,
-            format: 'json',
+            latlng: `${lat},${lon}`,
+            key: this.MAP_API_KEY,
+            language: 'en',
           },
         },
       );
 
-      const raw = response.data;
+      const result = response.data?.results?.[0];
+      if (!result) {
+        throw new BadRequestException('No results found for these coordinates');
+      }
+
+      const addressComponents = result?.address_components ?? [];
+
+      // Extract address components
+      const getComponent = (types: string[]) => {
+        const component = addressComponents.find((c: any) =>
+          types.some((type) => c.types.includes(type)),
+        );
+        return component?.long_name;
+      };
+
+      const getShortComponent = (types: string[]) => {
+        const component = addressComponents.find((c: any) =>
+          types.some((type) => c.types.includes(type)),
+        );
+        return component?.short_name;
+      };
 
       return {
-        displayName: raw?.display_name ?? '',
-        country: raw?.address?.country,
-        state: raw?.address?.state,
-        city: raw?.address?.city,
-        street: raw?.address?.street,
-        postcode: raw?.address?.postcode,
-        countryCode: raw?.address?.country_code,
-        houseNumber: raw?.address?.house_number,
+        displayName: result?.formatted_address ?? '',
+        country: getComponent(['country']),
+        state: getComponent(['administrative_area_level_1']),
+        city:
+          getComponent(['locality']) ??
+          getComponent(['administrative_area_level_2']),
+        street:
+          getComponent(['route']) ?? getComponent(['sublocality_level_1']),
+        postcode: getComponent(['postal_code']),
+        countryCode: getShortComponent(['country'])?.toLowerCase(),
+        houseNumber: getComponent(['street_number']),
       };
     } catch (err) {
       const e = err as AxiosError;
+      console.error(
+        'Google Maps Geocoding API error:',
+        e.response?.data ?? e.message,
+      );
       throw new InternalServerErrorException(
-        `Nominatim reverse failed: ${e.message}`,
+        `Google Maps reverse geocoding failed: ${e.message}`,
       );
     }
   }
