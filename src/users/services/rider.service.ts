@@ -135,7 +135,7 @@ export class RiderService {
     pickupLocation?:
       | [number, number]
       | { latitude: number | string; longitude: number | string },
-  ): Promise<string | null> {
+  ): Promise<string | undefined> {
     const MAX_ACTIVE_ORDERS = 5;
     const SEARCH_RADIUS_KM = 100; // Search within 100km radius
 
@@ -282,7 +282,7 @@ export class RiderService {
       // If still no riders found, return null
       if (!riders || riders.length === 0) {
         this.logger.warn('No available riders found at all');
-        return null;
+        return undefined;
       }
     }
 
@@ -298,7 +298,7 @@ export class RiderService {
     const closest = this.findClosestRider(riders, normalizedPickup);
     if (!closest) {
       this.logger.warn('No closest rider could be determined from candidates');
-      return null;
+      return undefined;
     }
 
     this.logger.debug(`Closest rider selected: ${closest}`);

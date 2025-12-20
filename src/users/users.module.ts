@@ -14,7 +14,6 @@ import { ActiveStatusService } from './services/active-status.service';
 import { ActiveStatusController } from './controller/active-status.controller';
 import { RiderService } from './services/rider.service';
 import { RiderController } from './controller/rider.controller';
-import { AdminController } from './controller/admin.controller';
 import { UsersGateway } from './users.gateway';
 import { VehicleDocumentSettings } from './entities/vehicle-document-settings.entity';
 import { RiderDocument } from './entities/rider-document.entity';
@@ -46,12 +45,7 @@ import { Order } from '../order/entities/order.entity';
     RegisterUseCase,
     UsersGateway,
   ],
-  controllers: [
-    UserController,
-    ActiveStatusController,
-    RiderController,
-    AdminController,
-  ],
+  controllers: [UserController, ActiveStatusController, RiderController],
   exports: [
     UsersService,
     UserDetailsService,

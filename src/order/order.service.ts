@@ -163,6 +163,7 @@ export class OrderService {
 
   async assignRiderToOrder(
     orderId: string,
+    riderId?: string, //optionally provide riderId
   ): Promise<StandardResponse<Order> | void> {
     const order = await this.orderRepository.findOne({
       where: { id: orderId },
@@ -181,10 +182,12 @@ export class OrderService {
         ]
       : undefined;
 
-    const riderId = await this.riderService.getRiderForOrder(
-      excludedRiderIds,
-      pickupLocation,
-    );
+    if (!riderId) {
+      riderId = await this.riderService.getRiderForOrder(
+        excludedRiderIds,
+        pickupLocation,
+      );
+    }
 
     if (!riderId) {
       this.logger.warn('No available rider found for order assignment');

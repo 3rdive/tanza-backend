@@ -8,8 +8,6 @@ import axios, { AxiosError } from 'axios';
 import { ConfigService } from '@nestjs/config';
 import { StandardResponse } from '../commons/standard-response';
 import {
-  PhotonResponseRaw,
-  NominatimReverseRaw,
   OrsDirectionsResponseRaw,
   OrsRouteRaw,
   SearchLocationResultDto,

@@ -7,80 +7,79 @@ import {
   UploadedFile,
   UseInterceptors,
   Res,
-  Req,
+  Query,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { diskStorage } from 'multer';
 import * as path from 'path';
-import { Response, Request } from 'express';
+import { Response } from 'express';
 import { Public } from '../auth/public.anotation';
 import { BaseUrl } from '../constants';
 import { StorageMediaService } from './storage-media.service';
 import { StandardResponse } from '../commons/standard-response';
-import * as fs from 'fs';
 import * as crypto from 'crypto';
+import { ConfigService } from '@nestjs/config';
 
 @Controller(BaseUrl.STORAGE)
 @Public()
 export class StorageMediaController {
-  constructor(private readonly storageMediaService: StorageMediaService) {}
+  constructor(
+    private readonly storageMediaService: StorageMediaService,
+    private readonly configService: ConfigService,
+  ) {}
 
   @Post('upload')
   @UseInterceptors(
     FileInterceptor('file', {
-      storage: diskStorage({
-        destination: (req, file, cb) => {
-          // ensure directory exists before saving
-
-          // 'this' not accessible here; we will compute via process.cwd and env indirectly
-          const UploadDir = process.env.UPLOAD_DIR || 'uploads';
-          const abs = path.isAbsolute(UploadDir)
-            ? UploadDir
-            : path.join(process.cwd(), UploadDir);
-          try {
-            // Create the directory if it doesn't exist
-            // Avoid requiring service instance here
-            fs.mkdirSync(abs, { recursive: true });
-          } catch (e) {
-            console.log('error with multer: ', e);
-            // ignore; Multer will still try and throw meaningful error
-          }
-          cb(null, abs);
-        },
-        filename: (req, file, cb) => {
-          const original = file.originalname;
-          const ext = path.extname(original);
-          // Use a UUID so we never expose the original name and avoid duplicates
-          const id = (crypto as any).randomUUID
-            ? (crypto as any).randomUUID()
-            : `${Date.now()}-${Math.round(Math.random() * 1e9)}`;
-          cb(null, `${id}${ext}`);
-        },
-      }),
-      limits: { fileSize: 20 * 1024 * 1024 }, // 20MB
+      limits: { fileSize: 2 * 1024 * 1024 }, // 2MB
     }),
   )
-  upload(@UploadedFile() file: Express.Multer.File, @Req() request: Request) {
+  async upload(
+    @UploadedFile() file: Express.Multer.File,
+    @Query('type') type?: string,
+  ) {
     if (!file) {
       throw new BadRequestException(StandardResponse.fail('No file uploaded'));
     }
 
-    const baseUrl = request.protocol + '://' + request.get('host');
+    const folder = ['documents', 'images'].includes(type ?? '')
+      ? type
+      : 'documents';
+    const ext = path.extname(file.originalname);
+    const id = (crypto as any).randomUUID
+      ? (crypto as any).randomUUID()
+      : `${Date.now()}-${Math.round(Math.random() * 1e9)}`;
+
+    const key = `${folder}/${id}${ext}`;
+
+    // Upload to S3
+    await this.storageMediaService.uploadFile(file.buffer, key, file.mimetype);
+
+    const endpoint = this.configService.get<string>('S3_ENDPOINT');
+    const bucketName = this.storageMediaService.getBucketName();
+
     return StandardResponse.ok(
       {
-        filename: file.filename,
+        key: key,
+        filename: `${id}${ext}`,
         mimetype: file.mimetype,
         size: file.size,
-        url: `${baseUrl}/api/v1/storage-media/${file.filename}`,
+        folder: folder,
+        url: `${endpoint}/${bucketName}/${key}`,
       },
       'File uploaded successfully',
     );
   }
 
   @Public()
-  @Get(':filename')
-  getFile(@Param('filename') filename: string, @Res() res: Response) {
-    const full = this.storageMediaService.assertFileExistsOrThrow(filename);
-    return res.sendFile(full);
+  @Get(':folder/:filename')
+  async getFile(
+    @Param('folder') folder: string,
+    @Param('filename') filename: string,
+    @Res() res: Response,
+  ) {
+    const key = `${folder}/${filename}`;
+    await this.storageMediaService.assertFileExistsOrThrow(key);
+    const url = await this.storageMediaService.getFileUrl(key);
+    res.redirect(String(url));
   }
 }
