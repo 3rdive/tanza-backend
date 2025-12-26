@@ -70,96 +70,96 @@ export class OrderService {
     private readonly riderGateway: RiderGateway,
   ) {}
 
-  async createOrder(
-    userId: string,
-    dto: CreateOrderDto,
-    start: [number, number], //[lon, lat]
-    end: [number, number], // [lon, lat]
-    isUrgent: boolean = false,
-    urgencyFee: number,
-  ): Promise<StandardResponse<Order>> {
-    // validateUserInfo(dto);
+  // async createOrder(
+  //   userId: string,
+  //   dto: CreateOrderDto,
+  //   start: [number, number], //[lon, lat]
+  //   end: [number, number], // [lon, lat]
+  //   isUrgent: boolean = false,
+  //   urgencyFee: number,
+  // ): Promise<StandardResponse<Order>> {
+  //   // validateUserInfo(dto);
 
-    const { duration, totalAmount, serviceCharge, deliveryFee, distanceInKm } =
-      await this.calculateDeliveryChargesUsecase.calculateDeliveryFee(
-        start,
-        end,
-        isUrgent,
-        urgencyFee,
-      );
+  //   const { duration, totalAmount, serviceCharge, deliveryFee, distanceInKm } =
+  //     await this.calculateDeliveryChargesUsecase.calculateDeliveryFee(
+  //       start,
+  //       end,
+  //       isUrgent,
+  //       urgencyFee,
+  //     );
 
-    const walletDto = await this.walletService.getUserWallet(userId);
-    if (totalAmount > walletDto.walletBalance) {
-      throw new BadRequestException(
-        StandardResponse.fail('insufficient balance'),
-      );
-    }
+  //   const walletDto = await this.walletService.getUserWallet(userId);
+  //   if (totalAmount > walletDto.walletBalance) {
+  //     throw new BadRequestException(
+  //       StandardResponse.fail('insufficient balance'),
+  //     );
+  //   }
 
-    const order = OrderMapper.toEntity(
-      dto,
-      userId,
-      start,
-      end,
-      serviceCharge,
-      duration,
-      totalAmount,
-      deliveryFee,
-      distanceInKm,
-      isUrgent,
-    );
+  //   const order = OrderMapper.toEntity(
+  //     dto,
+  //     userId,
+  //     start,
+  //     end,
+  //     serviceCharge,
+  //     duration,
+  //     totalAmount,
+  //     deliveryFee,
+  //     distanceInKm,
+  //     isUrgent,
+  //   );
 
-    const queryRunner = this.dataSource.createQueryRunner();
-    await queryRunner.connect();
-    await queryRunner.startTransaction();
+  //   const queryRunner = this.dataSource.createQueryRunner();
+  //   await queryRunner.connect();
+  //   await queryRunner.startTransaction();
 
-    try {
-      const orderRepo = queryRunner.manager.getRepository(Order);
-      const walletRepo = queryRunner.manager.getRepository(Wallets);
-      const trackingRepo = queryRunner.manager.getRepository(OrderTracking);
+  //   try {
+  //     const orderRepo = queryRunner.manager.getRepository(Order);
+  //     const walletRepo = queryRunner.manager.getRepository(Wallets);
+  //     const trackingRepo = queryRunner.manager.getRepository(OrderTracking);
 
-      const saved = await orderRepo.save(order);
+  //     const saved = await orderRepo.save(order);
 
-      const wallet = await walletRepo.findOne({ where: { userId } });
-      if (!wallet) {
-        throw new BadRequestException(
-          StandardResponse.fail('wallet not found'),
-        );
-      }
-      wallet.walletBalance -= totalAmount; // deduct
-      await walletRepo.save(wallet);
+  //     const wallet = await walletRepo.findOne({ where: { userId } });
+  //     if (!wallet) {
+  //       throw new BadRequestException(
+  //         StandardResponse.fail('wallet not found'),
+  //       );
+  //     }
+  //     wallet.walletBalance -= totalAmount; // deduct
+  //     await walletRepo.save(wallet);
 
-      const orderTracking = new OrderTracking();
-      orderTracking.orderId = saved.id;
-      orderTracking.note = 'Order created';
-      orderTracking.status = TrackingStatus.PENDING;
-      await trackingRepo.save(orderTracking);
+  //     const orderTracking = new OrderTracking();
+  //     orderTracking.orderId = saved.id;
+  //     orderTracking.note = 'Order created';
+  //     orderTracking.status = TrackingStatus.PENDING;
+  //     await trackingRepo.save(orderTracking);
 
-      await queryRunner.commitTransaction();
+  //     await queryRunner.commitTransaction();
 
-      const transactionDto = new TransactionDto();
-      transactionDto.walletId = wallet.id;
-      transactionDto.userId = userId;
-      transactionDto.amount = totalAmount;
-      transactionDto.type = TransactionType.ORDER;
-      transactionDto.reference = `TZTX-${uuid()}`;
-      transactionDto.status = TransactionStatus.COMPLETE;
-      transactionDto.description = `Placed Order of N${totalAmount} for delivery.`;
-      transactionDto.orderId = saved.id;
-      this.eventBus.publish(new CreateTransactionEvent(transactionDto));
+  //     const transactionDto = new TransactionDto();
+  //     transactionDto.walletId = wallet.id;
+  //     transactionDto.userId = userId;
+  //     transactionDto.amount = totalAmount;
+  //     transactionDto.type = TransactionType.ORDER;
+  //     transactionDto.reference = `TZTX-${uuid()}`;
+  //     transactionDto.status = TransactionStatus.COMPLETE;
+  //     transactionDto.description = `Placed Order of N${totalAmount} for delivery.`;
+  //     transactionDto.orderId = saved.id;
+  //     this.eventBus.publish(new CreateTransactionEvent(transactionDto));
 
-      await this.assignRiderToOrder(saved.id);
-      return StandardResponse.ok(saved, 'Order created successfully');
-    } catch (error) {
-      this.logger.error(
-        'Failed to create order',
-        error?.stack || String(error),
-      );
-      await queryRunner.rollbackTransaction();
-      throw error;
-    } finally {
-      await queryRunner.release();
-    }
-  }
+  //     await this.assignRiderToOrder(saved.id);
+  //     return StandardResponse.ok(saved, 'Order created successfully');
+  //   } catch (error) {
+  //     this.logger.error(
+  //       'Failed to create order',
+  //       error?.stack || String(error),
+  //     );
+  //     await queryRunner.rollbackTransaction();
+  //     throw error;
+  //   } finally {
+  //     await queryRunner.release();
+  //   }
+  // }
 
   async assignRiderToOrder(
     orderId: string,
@@ -711,6 +711,11 @@ export class OrderService {
         note: 'Rider accepted the order',
       });
 
+      // Deduct service charge from rider's wallet for cash payments
+      if (order.isCashPayment) {
+        await this.deductServiceChargeFromRider(riderId, order);
+      }
+
       return StandardResponse.ok(
         'Order accepted',
         'Order accepted successfully',
@@ -722,6 +727,46 @@ export class OrderService {
         'Order declined and reassigned',
         'Order declined and reassigned successfully',
       );
+    }
+  }
+
+  /**
+   * Deduct service charge from rider's wallet for cash payment orders.
+   * Allows negative balance if rider doesn't have sufficient funds.
+   */
+  private async deductServiceChargeFromRider(
+    riderId: string,
+    order: Order,
+  ): Promise<void> {
+    try {
+      // Get rider's wallet
+      const riderWallet = await this.walletService.getUserWallet(riderId);
+
+      // Deduct service charge from rider's wallet (allow negative balance)
+      const serviceCharge = order.serviceChargeAmount;
+      await this.walletService.deductServiceCharge(riderId, serviceCharge);
+
+      // Create transaction record for service charge deduction
+      const transactionDto = new TransactionDto();
+      transactionDto.walletId = riderWallet.id;
+      transactionDto.userId = riderId;
+      transactionDto.amount = serviceCharge;
+      transactionDto.type = TransactionType.SERVICE_CHARGE;
+      transactionDto.reference = `TZTX-${uuid()}`;
+      transactionDto.status = TransactionStatus.COMPLETE;
+      transactionDto.description = `Service charge deduction for cash payment order N${order.totalAmount?.toFixed(2)}.`;
+      transactionDto.orderId = order.id;
+      this.eventBus.publish(new CreateTransactionEvent(transactionDto));
+
+      this.logger.log(
+        `Service charge of N${serviceCharge} deducted from rider ${riderId}'s wallet for cash payment order ${order.id}`,
+      );
+    } catch (error) {
+      this.logger.error(
+        `Failed to deduct service charge from rider ${riderId} for order ${order.id}`,
+        error?.stack || String(error),
+      );
+      // Don't throw - service charge deduction failure shouldn't fail order acceptance
     }
   }
 

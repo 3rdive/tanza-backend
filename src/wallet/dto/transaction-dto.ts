@@ -8,6 +8,7 @@ export class TransactionDto {
   orderId: string;
   type: TransactionType;
   status: TransactionStatus;
+  isCashPayment: boolean;
   description?: string;
   reference: string;
 }

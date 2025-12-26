@@ -19,6 +19,7 @@ import { WithdrawalOptions } from './entities/withdrawal-options.entity';
 import { WithdrawalOptionsService } from './services/withdrawal-options.service';
 import { WithdrawalOptionsController } from './controllers/withdrawal-options.controller';
 import { RiderPayoutsService } from './services/rider-payouts.service';
+import { CacheModule } from 'src/cache/cache.module';
 
 @Module({
   imports: [
@@ -30,6 +31,7 @@ import { RiderPayoutsService } from './services/rider-payouts.service';
     ]),
     UsersModule,
     HttpModule,
+    CacheModule,
   ],
   providers: [
     WalletService,

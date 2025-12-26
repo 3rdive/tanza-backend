@@ -10,6 +10,7 @@ export class TransactionResponse {
   orderId: string | null;
   description: string;
   status: TransactionStatus;
+  isCashPayment: boolean;
   // Last order tracking status when type is ORDER; otherwise null
   orderStatus?: TrackingStatus | null;
 }

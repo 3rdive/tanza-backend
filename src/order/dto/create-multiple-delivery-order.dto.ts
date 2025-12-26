@@ -9,13 +9,15 @@ import {
   IsDefined,
   IsNumber,
   ValidateIf,
+  IsBoolean,
 } from 'class-validator';
 import { Type } from 'class-transformer';
 import { UserOrderRole } from '../entities/user-order-role.enum';
+import { Column } from 'typeorm';
 
 class PartyInfoDto {
   @IsString()
-  @IsNotEmpty()
+  @IsOptional()
   name: string;
 
   @IsString()
@@ -76,4 +78,15 @@ export class CreateMultipleDeliveryOrderDto {
   @IsNumber({}, { message: 'urgencyFee must be a number' })
   @Type(() => Number)
   urgencyFee?: number;
+
+  @IsOptional()
+  @IsBoolean()
+  isCashPayment?: boolean;
+
+  @IsOptional()
+  @IsNumber({}, { message: 'cashAmountToReceive must be a number' })
+  @Type(() => Number)
+  cashAmountToReceive?: number;
+  //https://api.delivery.herlay.com/webhooks/paystack
+  //
 }

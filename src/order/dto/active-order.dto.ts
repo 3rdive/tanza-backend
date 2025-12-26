@@ -21,6 +21,8 @@ export class ActiveOrder {
   // Multiple delivery support
   hasMultipleDeliveries?: boolean;
   deliveryDestinations?: DeliveryDestinationDto[];
+  isCashPayment: boolean;
+  cashAmountToReceive: number;
 }
 
 export class OrderTrackingDto {

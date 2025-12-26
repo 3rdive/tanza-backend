@@ -125,4 +125,16 @@ export class Order {
 
   @Column({ default: false })
   isUrgent: boolean;
+
+  @Column({ default: false })
+  isCashPayment: boolean;
+
+  @Column({
+    type: 'decimal',
+    precision: 12,
+    scale: 2,
+    transformer: new DecimalToNumberTransformer(),
+    default: 0,
+  })
+  cashAmountToReceive: number;
 }

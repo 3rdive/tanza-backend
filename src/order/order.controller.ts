@@ -66,22 +66,22 @@ export class OrderController {
     return this.createOrderUsecase.createMultipleDeliveryOrder(user.sub, dto);
   }
 
-  @Post()
-  create(
-    @Body() dto: CreateOrderDto,
-    @Query() query: CalculateChargeQueryDto,
-    @CurrentUser() user: JwtPayload,
-  ) {
-    const { startLat, startLon, endLat, endLon, isUrgent, urgencyFee } = query;
-    return this.orderService.createOrder(
-      user.sub,
-      dto,
-      [startLon, startLat],
-      [endLon, endLat],
-      isUrgent || false,
-      urgencyFee!,
-    );
-  }
+  // @Post()
+  // create(
+  //   @Body() dto: CreateOrderDto,
+  //   @Query() query: CalculateChargeQueryDto,
+  //   @CurrentUser() user: JwtPayload,
+  // ) {
+  //   const { startLat, startLon, endLat, endLon, isUrgent, urgencyFee } = query;
+  //   return this.orderService.createOrder(
+  //     user.sub,
+  //     dto,
+  //     [startLon, startLat],
+  //     [endLon, endLat],
+  //     isUrgent || false,
+  //     urgencyFee!,
+  //   );
+  // }
 
   @Post('tracking')
   async addTracking(@Param('id') id: string, @Body() dto: OrderTrackingDto) {

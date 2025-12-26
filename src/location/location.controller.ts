@@ -16,6 +16,12 @@ export class LocationController {
   }
 
   @Public()
+  @Get('place-details')
+  async getPlaceDetails(@Query('placeId') placeId: string) {
+    return this.locationService.getPlaceDetails(placeId);
+  }
+
+  @Public()
   @Get('reverse')
   async reverse(@Query('lat') lat: number, @Query('lon') lon: number) {
     return this.locationService.reverseGeocode(lat, lon);

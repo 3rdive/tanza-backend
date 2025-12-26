@@ -18,7 +18,7 @@ export class Transactions {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column()
+  @Column({ nullable: true })
   walletId: string;
 
   @ManyToOne(() => Wallets, (wallet) => wallet.transactions)
@@ -53,6 +53,9 @@ export class Transactions {
 
   @Column({ nullable: true })
   description: string;
+
+  @Column({ default: false })
+  isCashPayment: boolean;
 
   @CreateDateColumn()
   createdAt: Date;

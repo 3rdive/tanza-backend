@@ -422,14 +422,13 @@ export class AdminService {
 
     // Users count
     const usersCount = await this.userRepository.count({
-      where: { role: Role.User, ...userDateFilter },
+      where: { role: Role.User },
     });
 
     // Riders count (Approved & Unapproved)
     const approvedRidersCount = await this.userRepository.count({
       where: {
         role: Role.RIDER,
-        ...userDateFilter,
         riderInfo: { documentStatus: DocumentStatus.APPROVED },
       },
       relations: ['riderInfo'],
@@ -438,7 +437,6 @@ export class AdminService {
     const unapprovedRidersCount = await this.userRepository.count({
       where: {
         role: Role.RIDER,
-        ...userDateFilter,
         riderInfo: { documentStatus: Not(DocumentStatus.APPROVED) },
       },
       relations: ['riderInfo'],

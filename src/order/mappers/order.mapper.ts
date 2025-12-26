@@ -147,6 +147,8 @@ export class OrderMapper {
           deliveredAt: d.deliveredAt,
           createdAt: d.createdAt,
         })) || [],
+      isCashPayment: order.isCashPayment,
+      cashAmountToReceive: order.cashAmountToReceive,
     };
   }
 
@@ -182,6 +184,8 @@ export class OrderMapper {
       isUrgent: order.isUrgent || false,
       amount: order.totalAmount,
       hasMultipleDeliveries: order.hasMultipleDeliveries || false,
+      isCashPayment: order.isCashPayment,
+      cashAmountToReceive: order.cashAmountToReceive,
       deliveryDestinations:
         order.deliveryDestinations?.map((d) => ({
           id: d.id,

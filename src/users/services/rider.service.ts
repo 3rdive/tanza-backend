@@ -130,6 +130,7 @@ export class RiderService {
    *
    * This function will attempt to normalize and validate the pickupLocation.
    */
+
   async getRiderForOrder(
     excludeRiderIds: string[] = [],
     pickupLocation?:
@@ -137,7 +138,7 @@ export class RiderService {
       | { latitude: number | string; longitude: number | string },
   ): Promise<string | undefined> {
     const MAX_ACTIVE_ORDERS = 5;
-    const SEARCH_RADIUS_KM = 100; // Search within 100km radius
+    const SEARCH_RADIUS_KM = 25; // Search within 100km radius
 
     // Normalize and validate pickupLocation early, if provided
     let normalizedPickup: [number, number] | undefined = undefined; // [longitude, latitude]

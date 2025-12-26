@@ -54,8 +54,12 @@ export class StorageMediaController {
     // Upload to S3
     await this.storageMediaService.uploadFile(file.buffer, key, file.mimetype);
 
-    const endpoint = this.configService.get<string>('S3_ENDPOINT');
+    // const endpoint = this.configService.get<string>('S3_ENDPOINT');
+    const baseFetchUrl = this.configService.get<string>('S3_GET_ENDPOINT');
     const bucketName = this.storageMediaService.getBucketName();
+
+    const publicUrl = `${baseFetchUrl}/${bucketName}/${key}`;
+    console.log('publicUrl: ', publicUrl);
 
     return StandardResponse.ok(
       {
@@ -64,7 +68,7 @@ export class StorageMediaController {
         mimetype: file.mimetype,
         size: file.size,
         folder: folder,
-        url: `${endpoint}/${bucketName}/${key}`,
+        url: publicUrl,
       },
       'File uploaded successfully',
     );

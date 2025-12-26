@@ -16,6 +16,8 @@ export class AssignedOrderDto {
 
   // Multiple delivery support
   hasMultipleDeliveries?: boolean;
+  isCashPayment: boolean;
+  cashAmountToReceive: number;
   deliveryDestinations?: {
     id: string;
     dropOffLocation: OrderLocation;

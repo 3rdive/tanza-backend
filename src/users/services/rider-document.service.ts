@@ -298,9 +298,13 @@ export class RiderDocumentService {
 
         if (dto.expirationDate) {
           const newExpirationDate = new Date(dto.expirationDate);
+          const existingDate = existingDoc.expirationDate
+            ? new Date(existingDoc.expirationDate)
+            : null;
+
           if (
-            !existingDoc.expirationDate ||
-            existingDoc.expirationDate.getTime() !== newExpirationDate.getTime()
+            !existingDate ||
+            existingDate.getTime() !== newExpirationDate.getTime()
           ) {
             existingDoc.expirationDate = newExpirationDate;
             hasChanges = true;

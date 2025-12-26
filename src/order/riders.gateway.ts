@@ -30,7 +30,7 @@ export class RiderGateway implements OnGatewayConnection, OnGatewayDisconnect {
         client.handshake.auth?.token || client.handshake.query?.token;
       if (!token) throw new Error('Missing token');
 
-      const payload = await this.jwtService.verifyAsync(token, {
+      const payload = await this.jwtService.verifyAsync(token as string, {
         secret: this.configService.get<string>('JWT_SECRET'),
       });
       client.data.userId = payload.sub;

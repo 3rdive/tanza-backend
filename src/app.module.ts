@@ -20,12 +20,14 @@ import { TaskModule } from './task/task.module';
 import { NotificationModule } from './notification/notification.module';
 import { AdminModule } from './admin/admin.module';
 import { TicketsModule } from './tickets/tickets.module';
+import { CacheModule } from './cache/cache.module';
 
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true, // makes it available everywhere without re-import
     }),
+    CacheModule,
     // Use ConfigService to read env vars
     TypeOrmModule.forRootAsync({
       inject: [ConfigService],

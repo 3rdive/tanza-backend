@@ -46,6 +46,7 @@ export class WalletMapper {
       orderId: transactions.orderId,
       description: transactions.description,
       status: transactions.status,
+      isCashPayment: transactions.isCashPayment,
       ...(orderStatus !== undefined ? { orderStatus } : {}),
     };
   }

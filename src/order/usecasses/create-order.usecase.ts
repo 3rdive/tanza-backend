@@ -56,19 +56,21 @@ export class CreateOrderUsecase {
         urgencyFee,
       );
 
-    // Check wallet balance
-    const walletDto = await this.walletService.getUserWallet(userId);
-    if (chargeResult.totalAmount > walletDto.walletBalance) {
-      throw new BadRequestException(
-        StandardResponse.fail('insufficient balance'),
-      );
+    // Check wallet balance (skip for cash payments)
+    if (!dto.isCashPayment) {
+      const walletDto = await this.walletService.getUserWallet(userId);
+      if (chargeResult.totalAmount > walletDto.walletBalance) {
+        throw new BadRequestException(
+          StandardResponse.fail('insufficient balance'),
+        );
+      }
     }
 
     // Create order entity
     const order = new Order();
     order.userId = userId;
     order.sender = {
-      name: dto.sender.name,
+      name: dto.sender.name || 'anonymous',
       email: dto.sender.email || '',
       phone: dto.sender.phone,
       role: dto.userOrderRole,
@@ -77,7 +79,7 @@ export class CreateOrderUsecase {
     // For multiple deliveries, use first recipient for backward compatibility
     const firstRecipient = dto.deliveryLocations[0].recipient;
     order.recipient = {
-      name: firstRecipient.name,
+      name: firstRecipient.name || 'anonymous',
       email: firstRecipient.email || '',
       phone: firstRecipient.phone,
       role:
@@ -100,6 +102,9 @@ export class CreateOrderUsecase {
       address: firstDelivery.address,
     };
 
+    //TODO: debugd order not being created
+    //change + & - sing on transaction history (mobile)
+
     order.userOrderRole = dto.userOrderRole;
     order.vehicleType = chargeResult.vehicleType;
     order.noteForRider = dto.noteForRider || '';
@@ -108,6 +113,8 @@ export class CreateOrderUsecase {
     order.totalAmount = chargeResult.totalAmount;
     order.deliveryFee = chargeResult.totalDeliveryFee;
     order.distanceInKm = chargeResult.totalDistanceKm;
+    order.isCashPayment = dto.isCashPayment || false;
+    order.cashAmountToReceive = dto.cashAmountToReceive || 0;
     order.isUrgent = dto.isUrgent || false;
     order.hasMultipleDeliveries = dto.deliveryLocations.length > 1;
 
@@ -154,15 +161,17 @@ export class CreateOrderUsecase {
         await destinationRepo.save(destination);
       }
 
-      // Deduct from wallet
-      const wallet = await walletRepo.findOne({ where: { userId } });
-      if (!wallet) {
+      // Deduct from wallet (skip for cash payments)
+      const userWallet = await walletRepo.findOne({ where: { userId } });
+      if (!userWallet) {
         throw new BadRequestException(
           StandardResponse.fail('wallet not found'),
         );
       }
-      wallet.walletBalance -= chargeResult.totalAmount;
-      await walletRepo.save(wallet);
+      if (!dto.isCashPayment) {
+        userWallet.walletBalance -= chargeResult.totalAmount;
+        await walletRepo.save(userWallet);
+      }
 
       // Create order tracking
       const orderTracking = new OrderTracking();
@@ -173,15 +182,16 @@ export class CreateOrderUsecase {
 
       await queryRunner.commitTransaction();
 
-      // Create transaction event
+      // Create transaction event (skip for cash payments)
       const transactionDto = new TransactionDto();
-      transactionDto.walletId = wallet.id;
+      transactionDto.walletId = userWallet?.id || '';
       transactionDto.userId = userId;
       transactionDto.amount = chargeResult.totalAmount;
       transactionDto.type = TransactionType.ORDER;
+      transactionDto.isCashPayment = dto.isCashPayment || false;
       transactionDto.reference = `TZTX-${uuid()}`;
       transactionDto.status = TransactionStatus.COMPLETE;
-      transactionDto.description = `Placed Order of N${chargeResult.totalAmount} for ${dto.deliveryLocations.length} delivery location(s).`;
+      transactionDto.description = `Placed Order of N${chargeResult.totalAmount} for ${dto.deliveryLocations.length} delivery location(s) ${dto.isCashPayment ? ' [pay on delivery]' : ''}.`;
       transactionDto.orderId = savedOrder.id;
       this.eventBus.publish(new CreateTransactionEvent(transactionDto));
 

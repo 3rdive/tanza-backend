@@ -16,6 +16,13 @@ export class TwilioService {
     try {
       const twilioMobileNumber =
         this.configService.get<string>('TWILIO_MOBILE');
+
+      if (!twilioMobileNumber) {
+        console.info(
+          'Twilio mobile number not configured. Skipping SMS send. are u in dev?',
+        );
+        return;
+      }
       return this.client.messages.create({
         from: twilioMobileNumber,
         to: `+234${to}`,

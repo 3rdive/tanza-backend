@@ -22,7 +22,7 @@ export class PayStackService {
       {
         email,
         first_name: firstName,
-        last_name: lastName,
+        last_name: `${lastName}/TANZA`,
       },
       {
         headers: {

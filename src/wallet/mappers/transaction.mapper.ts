@@ -11,6 +11,7 @@ export class TransactionMapper {
     transaction.orderId = dto.orderId;
     transaction.type = dto.type;
     transaction.status = dto.status;
+    transaction.isCashPayment = dto.isCashPayment;
     transaction.description = dto.description || '';
     transaction.reference = dto.reference;
 

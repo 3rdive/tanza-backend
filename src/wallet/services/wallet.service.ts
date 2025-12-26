@@ -15,9 +15,15 @@ import { TransactionService } from './transaction.service';
 import { WalletMapper } from './wallet-mapper';
 import { Role } from '../../auth/roles.enum';
 import { CreateNotficationEvent } from '../../notification/create-notification.event';
+import { CacheService } from '../../cache/cache.service';
+import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class WalletService {
+  private readonly CACHE_TTL = {
+    VIRTUAL_ACCOUNT: 30 * 24 * 60 * 60, // 30 days - virtual accounts rarely change
+  };
+
   constructor(
     @InjectRepository(Wallets)
     private readonly walletRepository: Repository<Wallets>,
@@ -27,6 +33,8 @@ export class WalletService {
     private readonly payStackService: PayStackService,
     private readonly transactionService: TransactionService,
     private readonly eventBus: EventBus,
+    private readonly cacheService: CacheService,
+    private readonly configService: ConfigService,
   ) {}
 
   async deductAmount(userId: string, amount: number) {
@@ -36,6 +44,14 @@ export class WalletService {
     }
     wallet.walletBalance = wallet.walletBalance + amount;
     await this.walletRepository.save(wallet);
+  }
+
+  /**
+   * Deduct service charge from user's wallet.
+   * Allows negative balance if user doesn't have sufficient funds.
+   */
+  async deductServiceCharge(userId: string, amount: number): Promise<void> {
+    await this.walletRepository.decrement({ userId }, 'walletBalance', amount);
   }
 
   async initialiseWallet(userId: string, role = Role.User) {
@@ -96,26 +112,40 @@ export class WalletService {
   }
 
   async getVirtualAccount(userId: string) {
-    // Ensure wallet and virtual account exist for the user
-    const wallet = await this.walletRepository.findOne({ where: { userId } });
-    if (!wallet) {
-      throw new BadRequestException(
-        StandardResponse.fail('wallet not initialised'),
-      );
-    }
+    const cacheKey = this.cacheService.generateKey(
+      'wallet',
+      'virtual-account',
+      userId,
+    );
 
-    // Load or retrieve the virtual account linked to user
-    const virtualAccount = await this.virtualAccountRepository.findOne({
-      where: { userId },
-    });
+    return this.cacheService.wrap(
+      cacheKey,
+      async () => {
+        // Ensure wallet and virtual account exist for the user
+        const wallet = await this.walletRepository.exists({
+          where: { userId },
+        });
+        if (!wallet) {
+          throw new BadRequestException(
+            StandardResponse.fail('wallet not initialised'),
+          );
+        }
 
-    if (!virtualAccount) {
-      throw new BadRequestException(
-        StandardResponse.fail('virtual account not found'),
-      );
-    }
+        // Load or retrieve the virtual account linked to user
+        const virtualAccount = await this.virtualAccountRepository.findOne({
+          where: { userId },
+        });
 
-    return WalletMapper.mapToVirtualAccountDto(virtualAccount);
+        if (!virtualAccount) {
+          throw new BadRequestException(
+            StandardResponse.fail('virtual account not found'),
+          );
+        }
+
+        return WalletMapper.mapToVirtualAccountDto(virtualAccount);
+      },
+      { ttl: this.CACHE_TTL.VIRTUAL_ACCOUNT },
+    );
   }
 
   async fundWallet(

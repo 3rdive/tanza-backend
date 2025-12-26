@@ -14,6 +14,7 @@ import {
   ReverseGeocodeDto,
   DistanceResultDto,
 } from './location.dto';
+import { CacheService } from '../cache/cache.service';
 
 @Injectable()
 export class LocationService {
@@ -24,7 +25,17 @@ export class LocationService {
   private readonly PHOTON_URL: string | undefined;
   private readonly MAP_API_KEY: string | undefined;
 
-  constructor(private readonly config: ConfigService) {
+  // Cache TTL constants (in seconds)
+  private readonly CACHE_TTL = {
+    LOCATION_SEARCH: 7 * 24 * 60 * 60, // 7 days - location searches are relatively stable
+    REVERSE_GEOCODE: 30 * 24 * 60 * 60, // 30 days - reverse geocoding rarely changes
+    DISTANCE: 7 * 24 * 60 * 60, // 7 days - distance calculations are stable
+  };
+
+  constructor(
+    private readonly config: ConfigService,
+    private readonly cacheService: CacheService,
+  ) {
     this.NOMINATIM_URL = this.config.get<string>('NOMINATIM_URL');
     this.ORS_URL = this.config.get<string>('ORS_URL');
     this.ORS_API_KEY = this.config.get<string>('ORS_API_KEY');
@@ -42,6 +53,29 @@ export class LocationService {
       throw new InternalServerErrorException('MAP_API_KEY is not configured');
     }
 
+    // Generate cache key for this search query
+    const cacheKey = this.cacheService.generateKey(
+      'location',
+      'search',
+      query.toLowerCase().trim(),
+    );
+
+    // Use cache wrapper to handle get/set automatically
+    return this.cacheService.wrap(
+      cacheKey,
+      async () => {
+        return await this.performLocationSearch(query);
+      },
+      { ttl: this.CACHE_TTL.LOCATION_SEARCH },
+    );
+  }
+
+  /**
+   * Internal method to perform the actual location search
+   */
+  private async performLocationSearch(
+    query: string,
+  ): Promise<SearchLocationResultDto[]> {
     try {
       // Use Google Maps Places API Autocomplete
       const response = await axios.get(
@@ -55,74 +89,28 @@ export class LocationService {
         },
       );
 
-      // console.log('search_result: ', response);
-
       const predictions = response.data?.predictions ?? [];
 
-      // Get details for each prediction to extract full address components
-      const results: SearchLocationResultDto[] = await Promise.all(
-        predictions.slice(0, 5).map(async (prediction: any) => {
-          try {
-            const detailsResponse = await axios.get(
-              'https://maps.googleapis.com/maps/api/place/details/json',
-              {
-                params: {
-                  place_id: prediction.place_id,
-                  fields: 'name,formatted_address,geometry,address_components',
-                  key: this.MAP_API_KEY,
-                },
-              },
-            );
-
-            const place = detailsResponse.data?.result;
-            const addressComponents = place?.address_components ?? [];
-
-            // Extract address components
-            const getComponent = (types: string[]) => {
-              const component = addressComponents.find((c: any) =>
-                types.some((type) => c.types.includes(type)),
-              );
-              return component?.long_name;
-            };
-
-            return {
-              name: place?.name ?? prediction.description,
-              description: place?.formatted_address ?? prediction.description,
-              country: getComponent(['country']),
-              state: getComponent(['administrative_area_level_1']),
-              city:
-                getComponent(['locality']) ??
-                getComponent(['administrative_area_level_2']),
-              street:
-                getComponent(['route']) ??
-                getComponent(['sublocality_level_1']),
-              postcode: getComponent(['postal_code']),
-              latitude: place?.geometry?.location?.lat ?? 0,
-              longitude: place?.geometry?.location?.lng ?? 0,
-              countrycode: addressComponents
-                .find((c: any) => c.types.includes('country'))
-                ?.short_name?.toLowerCase(),
-            };
-          } catch (detailError) {
-            // If details fail, return basic info from autocomplete
-            console.error('Failed to fetch place details:', detailError);
-            return {
-              name:
-                prediction.structured_formatting?.main_text ??
-                prediction.description,
-              description: prediction.description,
-              country: undefined,
-              state: undefined,
-              city: undefined,
-              street: undefined,
-              postcode: undefined,
-              latitude: 0,
-              longitude: 0,
-              countrycode: undefined,
-            };
-          }
-        }),
-      );
+      // Return predictions directly without fetching full place details
+      const results: SearchLocationResultDto[] = predictions
+        .slice(0, 5)
+        .map((prediction: any) => ({
+          id: prediction.place_id,
+          name:
+            prediction.structured_formatting?.main_text ??
+            prediction.description,
+          description: prediction.description,
+          // Predictions don't include detailed location info or coordinates
+          // Use the getPlaceDetails method to fetch full details
+          country: undefined,
+          state: undefined,
+          city: undefined,
+          street: undefined,
+          postcode: undefined,
+          latitude: 0,
+          longitude: 0,
+          countrycode: undefined,
+        }));
 
       return results;
     } catch (err) {
@@ -134,11 +122,103 @@ export class LocationService {
     }
   }
 
+  async getPlaceDetails(placeId: string): Promise<SearchLocationResultDto> {
+    if (!placeId || !placeId.trim()) {
+      throw new BadRequestException('placeId parameter is required');
+    }
+
+    if (!this.MAP_API_KEY) {
+      throw new InternalServerErrorException('MAP_API_KEY is not configured');
+    }
+
+    // Cache place details
+    const cacheKey = this.cacheService.generateKey(
+      'location',
+      'place-details',
+      placeId.trim(),
+    );
+
+    return this.cacheService.wrap(
+      cacheKey,
+      async () => {
+        return await this.performPlaceDetailsLookup(placeId);
+      },
+      { ttl: this.CACHE_TTL.LOCATION_SEARCH },
+    );
+  }
+
+  /**
+   * Internal method to fetch place details from Google Maps
+   */
+  private async performPlaceDetailsLookup(
+    placeId: string,
+  ): Promise<SearchLocationResultDto> {
+    try {
+      const response = await axios.get(
+        'https://maps.googleapis.com/maps/api/place/details/json',
+        {
+          params: {
+            place_id: placeId,
+            fields: 'name,formatted_address,geometry,address_components',
+            key: this.MAP_API_KEY,
+          },
+        },
+      );
+
+      const place = response.data?.result;
+      if (!place) {
+        throw new BadRequestException('No place found for the given place_id');
+      }
+
+      const addressComponents = place?.address_components ?? [];
+
+      // Extract address components
+      const getComponent = (types: string[]) => {
+        const component = addressComponents.find((c: any) =>
+          types.some((type) => c.types.includes(type)),
+        );
+        return component?.long_name;
+      };
+
+      return {
+        id: placeId,
+        name: place?.name ?? place?.formatted_address,
+        description: place?.formatted_address,
+        country: getComponent(['country']),
+        state: getComponent(['administrative_area_level_1']),
+        city:
+          getComponent(['locality']) ??
+          getComponent(['administrative_area_level_2']),
+        street:
+          getComponent(['route']) ?? getComponent(['sublocality_level_1']),
+        postcode: getComponent(['postal_code']),
+        latitude: place?.geometry?.location?.lat ?? 0,
+        longitude: place?.geometry?.location?.lng ?? 0,
+        countrycode: addressComponents
+          .find((c: any) => c.types.includes('country'))
+          ?.short_name?.toLowerCase(),
+      };
+    } catch (err) {
+      const e = err as AxiosError;
+      console.error(
+        'Google Maps Place Details API error:',
+        e.response?.data ?? e.message,
+      );
+      throw new InternalServerErrorException(
+        `Failed to fetch place details: ${e.message}`,
+      );
+    }
+  }
+
   async reverseGeocode(lat: number, lon: number): Promise<ReverseGeocodeDto> {
     if (lat === undefined || lon === undefined) {
       throw new BadRequestException('lat and lon are required');
     }
-    if (Number.isNaN(Number(lat)) || Number.isNaN(Number(lon))) {
+
+    const latNum = Number(lat);
+    const lonNum = Number(lon);
+
+    if (Number.isNaN(latNum) || Number.isNaN(lonNum)) {
       throw new BadRequestException('lat and lon must be numbers');
     }
 
@@ -146,6 +226,31 @@ export class LocationService {
       throw new InternalServerErrorException('MAP_API_KEY is not configured');
     }
 
+    // Generate cache key with hashed coordinates (reduces precision for better cache hits)
+    const coordsHash = this.cacheService.hashCoordinates(latNum, lonNum, 4);
+    const cacheKey = this.cacheService.generateKey(
+      'location',
+      'reverse',
+      coordsHash,
+    );
+
+    // Use cache wrapper to handle get/set automatically
+    return this.cacheService.wrap(
+      cacheKey,
+      async () => {
+        return await this.performReverseGeocode(latNum, lonNum);
+      },
+      { ttl: this.CACHE_TTL.REVERSE_GEOCODE },
+    );
+  }
+
+  /**
+   * Internal method to perform the actual reverse geocoding
+   */
+  private async performReverseGeocode(
+    lat: number,
+    lon: number,
+  ): Promise<ReverseGeocodeDto> {
     try {
       const response = await axios.get(
         'https://maps.googleapis.com/maps/api/geocode/json',
@@ -217,6 +322,51 @@ export class LocationService {
       throw new InternalServerErrorException('ORS_API_KEY is not configured');
     }
 
+    const startLon = Number(start[0]);
+    const startLat = Number(start[1]);
+    const endLon = Number(end[0]);
+    const endLat = Number(end[1]);
+
+    if (isNaN(startLon) || isNaN(startLat) || isNaN(endLon) || isNaN(endLat)) {
+      throw new BadRequestException('Coordinates must be valid numbers');
+    }
+
+    // Generate cache key with hashed coordinates for better cache hits
+    const startHash = this.cacheService.hashCoordinates(startLat, startLon, 4);
+    const endHash = this.cacheService.hashCoordinates(endLat, endLon, 4);
+    const cacheKey = this.cacheService.generateKey(
+      'location',
+      'distance',
+      mode,
+      startHash,
+      endHash,
+    );
+
+    // Use cache wrapper to handle get/set automatically
+    return this.cacheService.wrap(
+      cacheKey,
+      async () => {
+        return await this.performDistanceCalculation(
+          [startLon, startLat],
+          [endLon, endLat],
+          mode,
+        );
+      },
+      { ttl: this.CACHE_TTL.DISTANCE },
+    );
+  }
+
+  /**
+   * Internal method to perform the actual distance calculation
+   */
+  private async performDistanceCalculation(
+    start: [number, number],
+    end: [number, number],
+    mode:
+      | 'driving-car'
+      | 'cycling-regular'
+      | 'foot-walking' = 'cycling-regular',
+  ): Promise<DistanceResultDto> {
     try {
       const response = await axios.post<OrsDirectionsResponseRaw>(
         `${this.ORS_URL}/v2/directions/${mode}`,
