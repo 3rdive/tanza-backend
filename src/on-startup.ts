@@ -7,6 +7,7 @@ import * as bcrypt from 'bcrypt';
 import { UserDetailsService } from './users/services/user-details.service';
 import { VehicleDocumentSettingsService } from './users/services/vehicle-document-settings.service';
 import e from 'express';
+import { VehicleTypeService } from './vehicle-type/vehicle-type.service';
 
 @Injectable()
 export class OnStartUp implements OnApplicationBootstrap {
@@ -15,9 +16,13 @@ export class OnStartUp implements OnApplicationBootstrap {
     private readonly registerUseCase: RegisterUseCase,
     private readonly configService: ConfigService,
     private readonly vehicleDocumentSettingsService: VehicleDocumentSettingsService,
+    private readonly vehicleTypeService: VehicleTypeService,
   ) {}
   async onApplicationBootstrap() {
     console.log('on application bootstrap');
+
+    await this.vehicleTypeService.initVehicleTypes();
+    console.log('Vehicle types initialized');
 
     // Initialize default vehicle document settings
     await this.vehicleDocumentSettingsService.initializeDefaultSettings();

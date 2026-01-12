@@ -16,6 +16,49 @@ export class VehicleTypeService {
     private readonly vehicleTypeRepository: Repository<VehicleType>,
   ) {}
 
+  async initVehicleTypes() {
+    const counts = await this.vehicleTypeRepository.count();
+    if (counts > 0) {
+      return;
+    }
+    const defaultTypes: Omit<
+      VehicleType,
+      'id' | 'deletedAt' | 'createdAt' | 'updatedAt'
+    >[] = [
+      {
+        name: 'bike',
+        description: 'Motorcycle for fast deliveries',
+        baseFee: 0,
+        isActive: true,
+        maxWeight: 100,
+      },
+      {
+        name: 'bicycle',
+        description: 'Eco-friendly bicycle delivery',
+        baseFee: 0,
+        isActive: false,
+        maxWeight: 50,
+      },
+      {
+        name: 'van',
+        description: 'Large vehicle for bulk deliveries',
+        baseFee: 0,
+        isActive: false,
+        maxWeight: 200,
+      },
+    ];
+
+    for (const typeData of defaultTypes) {
+      const existing = await this.vehicleTypeRepository.findOne({
+        where: { name: typeData.name },
+      });
+      if (!existing) {
+        const vehicleType = this.vehicleTypeRepository.create(typeData);
+        await this.vehicleTypeRepository.save(vehicleType);
+      }
+    }
+  }
+
   async create(createDto: CreateVehicleTypeDto): Promise<VehicleType> {
     // Check if vehicle type with same name already exists
     const existing = await this.vehicleTypeRepository.findOne({

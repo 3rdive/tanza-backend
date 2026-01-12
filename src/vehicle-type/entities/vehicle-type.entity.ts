@@ -35,7 +35,7 @@ export class VehicleType {
     transformer: new DecimalToNumberTransformer(),
     nullable: true,
   })
-  maxWeight: number;
+  maxWeight: number; //kg
 
   @Column({ default: true })
   isActive: boolean;
