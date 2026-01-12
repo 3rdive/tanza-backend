@@ -85,10 +85,10 @@ export class CalculateDeliveryChargesUsecase {
       200,
     );
 
-    const vanChargePerKM = this.configService.get<number>(
-      'DRIVER_RATE_PER_KM',
-      300,
-    );
+    // const vanChargePerKM = this.configService.get<number>(
+    //   'DRIVER_RATE_PER_KM',
+    //   300,
+    // );
 
     const serviceChargepercent = this.configService.get<number>(
       'SERVICE_CHARGE_PERCENT',
@@ -126,8 +126,8 @@ export class CalculateDeliveryChargesUsecase {
 
     // Determine vehicle type based on maximum distance.
     // If any delivery is > 5km, use van (driver) rate; otherwise use rider (bike) rate.
-    const chargePerKM =
-      maxDistanceFromPickup > 5 ? vanChargePerKM : bikeChargePerKM;
+    const chargePerKM = bikeChargePerKM;
+    // maxDistanceFromPickup > 5 ? vanChargePerKM : bikeChargePerKM;
 
     // Second pass: calculate fees using the determined rate
     for (const deliveryData of deliveryDistances) {
@@ -167,9 +167,9 @@ export class CalculateDeliveryChargesUsecase {
 
     // Determine vehicle type based on maximum distance
     // If any delivery is > 5km, use van; otherwise use bike
-    const vehicleTypeName = maxDistanceFromPickup > 5 ? 'van' : 'bike';
+    // const vehicleTypeName = maxDistanceFromPickup > 5 ? 'van' : 'bike';
     const vehicleType = await this.vehicleTypeRepository.findOne({
-      where: { name: vehicleTypeName },
+      where: { name: 'bike' },
     });
 
     return {
