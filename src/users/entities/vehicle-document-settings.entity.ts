@@ -2,17 +2,21 @@ import {
   Column,
   CreateDateColumn,
   Entity,
+  ManyToOne,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
-import { VehicleType } from '../../order/entities/vehicle-type.enum';
+import { VehicleType } from '../../vehicle-type/entities/vehicle-type.entity';
 
 @Entity()
 export class VehicleDocumentSettings {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column({ type: 'enum', enum: VehicleType })
+  @Column({ nullable: true })
+  vehicleTypeId: string;
+
+  @ManyToOne(() => VehicleType)
   vehicleType: VehicleType;
 
   @Column()

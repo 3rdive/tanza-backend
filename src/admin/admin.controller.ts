@@ -23,7 +23,6 @@ import {
 } from '../users/dto/vehicle-document-settings.dto';
 import { RiderDocumentService } from '../users/services/rider-document.service';
 import { UpdateDocumentStatusDto } from '../users/dto/rider-document.dto';
-import { VehicleType } from '../order/entities/vehicle-type.enum';
 import { AdminService } from './admin.service';
 
 @Roles(Role.Admin)
@@ -126,10 +125,12 @@ export class AdminController {
   @Roles(Role.RIDER, Role.Admin)
   @Get('vehicle-document-settings/vehicle-type/:vehicleType')
   async getDocumentSettingsByVehicleType(
-    @Param('vehicleType') vehicleType: VehicleType,
+    @Param('vehicleType') vehicleType: string,
   ) {
     return StandardResponse.ok(
-      await this.vehicleDocumentSettingsService.findByVehicleType(vehicleType),
+      await this.vehicleDocumentSettingsService.findByVehicleTypeIdentifier(
+        vehicleType,
+      ),
       'Document settings retrieved successfully',
     );
   }

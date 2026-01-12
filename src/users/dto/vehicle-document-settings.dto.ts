@@ -1,10 +1,9 @@
-import { IsBoolean, IsEnum, IsNotEmpty, IsString } from 'class-validator';
-import { VehicleType } from '../../order/entities/vehicle-type.enum';
+import { IsBoolean, IsNotEmpty, IsString, IsUUID } from 'class-validator';
 
 export class CreateVehicleDocumentSettingDto {
-  @IsEnum(VehicleType)
+  @IsUUID()
   @IsNotEmpty()
-  vehicleType: VehicleType;
+  vehicleTypeId: string;
 
   @IsString()
   @IsNotEmpty()

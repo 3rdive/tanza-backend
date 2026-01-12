@@ -14,4 +14,5 @@ export const BaseUrl = {
   TASK: 'api/v1/task',
   NOTIFICATION: 'api/v1/notification',
   TICKETS: 'api/v1/tickets',
+  VEHICLE_TYPES: 'api/v1/vehicle-types',
 };

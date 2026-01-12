@@ -106,7 +106,7 @@ export class CreateOrderUsecase {
     //change + & - sing on transaction history (mobile)
 
     order.userOrderRole = dto.userOrderRole;
-    order.vehicleType = chargeResult.vehicleType;
+    order.vehicleTypeId = chargeResult.vehicleTypeId;
     order.noteForRider = dto.noteForRider || '';
     order.serviceChargeAmount = chargeResult.serviceCharge;
     order.eta = chargeResult.estimatedTotalDuration;

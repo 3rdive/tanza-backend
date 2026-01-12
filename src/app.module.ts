@@ -21,6 +21,7 @@ import { NotificationModule } from './notification/notification.module';
 import { AdminModule } from './admin/admin.module';
 import { TicketsModule } from './tickets/tickets.module';
 import { CacheModule } from './cache/cache.module';
+import { VehicleTypeModule } from './vehicle-type/vehicle-type.module';
 
 @Module({
   imports: [
@@ -63,6 +64,7 @@ import { CacheModule } from './cache/cache.module';
     TicketsModule,
     AdminModule,
     NotificationModule,
+    VehicleTypeModule,
   ],
   controllers: [AppController],
   providers: [AppService, RequestContextService, OnStartUp],

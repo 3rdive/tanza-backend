@@ -21,6 +21,7 @@ import { VehicleDocumentSettingsService } from './services/vehicle-document-sett
 import { RiderDocumentService } from './services/rider-document.service';
 import { Order } from '../order/entities/order.entity';
 import { JwtModule } from '@nestjs/jwt';
+import { VehicleType } from '../vehicle-type/entities/vehicle-type.entity';
 
 @Module({
   imports: [
@@ -31,6 +32,7 @@ import { JwtModule } from '@nestjs/jwt';
       VehicleDocumentSettings,
       RiderDocument,
       Order,
+      VehicleType,
     ]),
     forwardRef(() => OtpModule),
     JwtModule,

@@ -1,18 +1,20 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { VehicleType } from '../../order/entities/vehicle-type.enum';
 import {
   CreateVehicleDocumentSettingDto,
   UpdateVehicleDocumentSettingDto,
 } from '../dto/vehicle-document-settings.dto';
 import { VehicleDocumentSettings } from '../entities/vehicle-document-settings.entity';
+import { VehicleType } from '../../vehicle-type/entities/vehicle-type.entity';
 
 @Injectable()
 export class VehicleDocumentSettingsService {
   constructor(
     @InjectRepository(VehicleDocumentSettings)
     private readonly settingsRepository: Repository<VehicleDocumentSettings>,
+    @InjectRepository(VehicleType)
+    private readonly vehicleTypeRepository: Repository<VehicleType>,
   ) {}
 
   async create(
@@ -23,15 +25,37 @@ export class VehicleDocumentSettingsService {
   }
 
   async findAll(): Promise<VehicleDocumentSettings[]> {
-    return await this.settingsRepository.find();
+    return await this.settingsRepository.find({ relations: ['vehicleType'] });
   }
 
-  async findByVehicleType(
-    vehicleType: VehicleType,
+  async findByVehicleTypeId(
+    vehicleTypeId: string,
   ): Promise<VehicleDocumentSettings[]> {
     return await this.settingsRepository.find({
-      where: { vehicleType },
+      where: { vehicleTypeId },
+      relations: ['vehicleType'],
     });
+  }
+
+  async findByVehicleTypeIdentifier(
+    identifier: string,
+  ): Promise<VehicleDocumentSettings[]> {
+    let vehicleTypeId = identifier;
+    const isUuid =
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+        identifier,
+      );
+
+    if (!isUuid) {
+      const vehicleType = await this.vehicleTypeRepository.findOne({
+        where: { name: identifier },
+      });
+      if (!vehicleType) {
+        throw new NotFoundException(`Vehicle type '${identifier}' not found`);
+      }
+      vehicleTypeId = vehicleType.id;
+    }
+    return this.findByVehicleTypeId(vehicleTypeId);
   }
 
   async findOne(id: string): Promise<VehicleDocumentSettings> {
@@ -63,60 +87,78 @@ export class VehicleDocumentSettingsService {
       return; // Settings already initialized
     }
 
+    // Get vehicle types by name
+    const bike = await this.vehicleTypeRepository.findOne({
+      where: { name: 'bike' },
+    });
+    const bicycle = await this.vehicleTypeRepository.findOne({
+      where: { name: 'bicycle' },
+    });
+    const van = await this.vehicleTypeRepository.findOne({
+      where: { name: 'van' },
+    });
+
+    if (!bike || !bicycle || !van) {
+      console.warn(
+        'Vehicle types not found. Skipping document settings initialization.',
+      );
+      return;
+    }
+
     const defaultSettings = [
       // Bike settings
       {
-        vehicleType: VehicleType.BIKE,
+        vehicleTypeId: bike.id,
         docName: 'Vehicle Photo',
         requiresExpiration: false,
         isRequired: true,
       },
       {
-        vehicleType: VehicleType.BIKE,
+        vehicleTypeId: bike.id,
         docName: 'Driver License',
         requiresExpiration: true,
         isRequired: true,
       },
       {
-        vehicleType: VehicleType.BIKE,
+        vehicleTypeId: bike.id,
         docName: 'Vehicle Registration',
         requiresExpiration: true,
         isRequired: true,
       },
       // Bicycle settings
       {
-        vehicleType: VehicleType.BICYCLE,
+        vehicleTypeId: bicycle.id,
         docName: 'Vehicle Photo',
         requiresExpiration: false,
         isRequired: true,
       },
       {
-        vehicleType: VehicleType.BICYCLE,
+        vehicleTypeId: bicycle.id,
         docName: 'ID Card',
         requiresExpiration: true,
         isRequired: true,
       },
       // Van settings
       {
-        vehicleType: VehicleType.VAN,
+        vehicleTypeId: van.id,
         docName: 'Vehicle Photo',
         requiresExpiration: false,
         isRequired: true,
       },
       {
-        vehicleType: VehicleType.VAN,
+        vehicleTypeId: van.id,
         docName: 'Driver License',
         requiresExpiration: true,
         isRequired: true,
       },
       {
-        vehicleType: VehicleType.VAN,
+        vehicleTypeId: van.id,
         docName: 'Vehicle Registration',
         requiresExpiration: true,
         isRequired: true,
       },
       {
-        vehicleType: VehicleType.VAN,
+        vehicleTypeId: van.id,
         docName: 'Insurance Certificate',
         requiresExpiration: true,
         isRequired: true,

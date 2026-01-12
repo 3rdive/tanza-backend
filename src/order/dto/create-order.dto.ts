@@ -3,11 +3,11 @@ import {
   IsNotEmpty,
   IsOptional,
   IsString,
+  IsUUID,
   ValidateNested,
 } from 'class-validator';
 import { Type } from 'class-transformer';
 import { UserOrderRole } from '../entities/user-order-role.enum';
-import { VehicleType } from '../entities/vehicle-type.enum';
 
 class PartyInfoDto {
   @IsString()
@@ -46,8 +46,9 @@ export class CreateOrderDto {
   @IsEnum(UserOrderRole)
   userOrderRole: UserOrderRole;
 
-  @IsEnum(VehicleType)
-  vehicleType: VehicleType;
+  @IsUUID()
+  @IsNotEmpty()
+  vehicleTypeId: string;
 
   @IsString()
   @IsOptional()

@@ -108,10 +108,21 @@ export class TransactionService {
     // TODO: map transaction with the order attached to it
     const useUUID = isUUID(idOrReference);
 
-    return await this.transactionRepository.findOne({
+    const transaction = await this.transactionRepository.findOne({
       where: useUUID ? { id: idOrReference } : { reference: idOrReference },
-      relations: ['order', 'order.orderTracking', 'order.deliveryDestinations'],
+      relations: [
+        'order',
+        'order.vehicleType',
+        'order.orderTracking',
+        'order.deliveryDestinations',
+      ],
     });
+
+    if (!transaction) {
+      return null;
+    }
+
+    return TransactionMapper.toTransactionDetailDto(transaction);
   }
 
   async getTotalEarnings(userId: string): Promise<number> {

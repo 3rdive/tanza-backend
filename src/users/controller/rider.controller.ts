@@ -19,7 +19,6 @@ import { UpdateRiderInfoDto } from '../dto/update-rider-info.dto';
 import { RiderDocumentService } from '../services/rider-document.service';
 import { UploadMultipleDocumentsDto } from '../dto/rider-document.dto';
 import { StandardResponse } from '../../commons/standard-response';
-import { VehicleType } from 'src/order/entities/vehicle-type.enum';
 
 @Roles(Role.RIDER)
 @Controller(BaseUrl.RIDERS)
@@ -73,9 +72,7 @@ export class RiderController {
     // Get rider info first
 
     return StandardResponse.ok(
-      await this.riderDocumentService.getRequiredDocuments(
-        vehicleType as VehicleType,
-      ),
+      await this.riderDocumentService.getRequiredDocuments(vehicleType),
       'Required documents retrieved successfully',
     );
   }

@@ -1,5 +1,4 @@
-import { IsEnum, IsOptional } from 'class-validator';
-import { VehicleType } from '../../order/entities/vehicle-type.enum';
+import { IsEnum, IsOptional, IsUUID } from 'class-validator';
 import { DocumentStatus } from '../document-status.enum';
 
 // Allowlist of statuses that users are permitted to set
@@ -10,8 +9,7 @@ export const USER_DOCUMENT_STATUS_ALLOWED: readonly DocumentStatus[] = [
 
 export class UpdateRiderInfoDto {
   @IsOptional()
-  @IsEnum(VehicleType)
-  vehicleType?: VehicleType;
+  vehicleType?: string;
 
   // Restrict to INITIAL & PENDING only
   @IsOptional()

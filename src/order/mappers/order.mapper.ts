@@ -3,6 +3,7 @@ import { ActiveOrder } from '../dto/active-order.dto';
 import { AssignedOrderDto } from '../dto/assigned-order.dto';
 import { CreateOrderDto } from '../dto/create-order.dto';
 import { OrderPreview } from '../dto/order-preview';
+import { OrderDetailsDto } from '../dto/order-details.dto';
 import { Order } from '../entities/order.entity';
 import { UserOrderRole } from '../entities/user-order-role.enum';
 
@@ -43,7 +44,7 @@ export class OrderMapper {
     };
 
     order.userOrderRole = dto.userOrderRole;
-    order.vehicleType = dto.vehicleType;
+    order.vehicleTypeId = dto.vehicleTypeId;
     order.noteForRider = dto.noteForRider || '';
     order.serviceChargeAmount = serviceCharge || 0;
     order.eta = duration || 'N/A';
@@ -203,5 +204,36 @@ export class OrderMapper {
 
   static mapToAssignedOrders(orders: Order[]): AssignedOrderDto[] {
     return orders.map((order) => this.mapToAssignedOrder(order));
+  }
+
+  static toOrderDetailsDto(order: Order): OrderDetailsDto {
+    return {
+      id: order.id,
+      sender: order.sender,
+      recipient: order.recipient,
+      pickUpLocation: order.pickUpLocation,
+      dropOffLocation: order.dropOffLocation,
+      deliveryDestinations: order.deliveryDestinations,
+      hasMultipleDeliveries: order.hasMultipleDeliveries,
+      userOrderRole: order.userOrderRole,
+      vehicleType: order.vehicleType?.name,
+      noteForRider: order.noteForRider,
+      serviceChargeAmount: order.serviceChargeAmount,
+      deliveryFee: order.deliveryFee,
+      totalAmount: order.totalAmount,
+      eta: order.eta,
+      userId: order.userId,
+      createdAt: order.createdAt,
+      updatedAt: order.updatedAt,
+      orderTracking: order.orderTracking,
+      riderId: order.riderId,
+      riderAssigned: order.riderAssigned,
+      riderAssignedAt: order.riderAssignedAt,
+      hasRewardedRider: order.hasRewardedRider,
+      distanceInKm: order.distanceInKm,
+      isUrgent: order.isUrgent,
+      isCashPayment: order.isCashPayment,
+      cashAmountToReceive: order.cashAmountToReceive,
+    };
   }
 }

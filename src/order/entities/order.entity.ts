@@ -13,7 +13,7 @@ import { OrderTracking } from './order-tracking.entity';
 import { DeliveryDestination } from './delivery-destination.entity';
 import { UserInfo } from './user-info';
 import { UserOrderRole } from './user-order-role.enum';
-import { VehicleType } from './vehicle-type.enum';
+import { VehicleType } from '../../vehicle-type/entities/vehicle-type.entity';
 import { OrderLocation } from '../dto/order-location';
 import { DecimalToNumberTransformer } from '../../common/transformers/decimal.transformer';
 
@@ -48,7 +48,10 @@ export class Order {
   @Column({ type: 'enum', enum: UserOrderRole })
   userOrderRole: UserOrderRole;
 
-  @Column({ type: 'enum', enum: VehicleType })
+  @Column({ nullable: true })
+  vehicleTypeId: string | null;
+
+  @ManyToOne(() => VehicleType)
   vehicleType: VehicleType;
 
   @Column({ nullable: true })

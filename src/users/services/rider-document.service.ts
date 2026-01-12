@@ -13,7 +13,7 @@ import {
 import { RiderDocument } from '../entities/rider-document.entity';
 import { RiderInfo } from '../rider-info.entity';
 import { VehicleDocumentSettingsService } from './vehicle-document-settings.service';
-import { VehicleType } from 'src/order/entities/vehicle-type.enum';
+import { VehicleType } from '../../vehicle-type/entities/vehicle-type.entity';
 
 @Injectable()
 export class RiderDocumentService {
@@ -23,6 +23,8 @@ export class RiderDocumentService {
     @InjectRepository(RiderInfo)
     private readonly riderInfoRepository: Repository<RiderInfo>,
     private readonly settingsService: VehicleDocumentSettingsService,
+    @InjectRepository(VehicleType)
+    private readonly vehicleTypeRepository: Repository<VehicleType>,
   ) {}
 
   /**
@@ -211,15 +213,36 @@ export class RiderDocumentService {
     await this.riderInfoRepository.save(riderInfo);
   }
 
-  async getRequiredDocuments(vehicleType: VehicleType) {
-    const settings = await this.settingsService.findByVehicleType(vehicleType);
+  async getRequiredDocuments(vehicleTypeIdentifier: string) {
+    let vehicleTypeId = vehicleTypeIdentifier;
+
+    // Check if it's a UUID
+    const isUuid =
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+        vehicleTypeIdentifier,
+      );
+
+    if (!isUuid) {
+      const vehicleType = await this.vehicleTypeRepository.findOne({
+        where: { name: vehicleTypeIdentifier },
+      });
+      if (!vehicleType) {
+        throw new NotFoundException(
+          `Vehicle type '${vehicleTypeIdentifier}' not found`,
+        );
+      }
+      vehicleTypeId = vehicleType.id;
+    }
+
+    const settings =
+      await this.settingsService.findByVehicleTypeId(vehicleTypeId);
 
     return settings.map((setting) => {
       return {
         docName: setting.docName,
         requiresExpiration: setting.requiresExpiration,
         isRequired: setting.isRequired,
-        vehicleType: setting.vehicleType,
+        vehicleType: setting.vehicleType?.name || null,
       };
     });
   }
@@ -237,14 +260,14 @@ export class RiderDocumentService {
       throw new NotFoundException('Rider info not found');
     }
 
-    if (!riderInfo.vehicleType) {
+    if (!riderInfo.vehicleTypeId) {
       throw new BadRequestException('Vehicle type not set for rider');
     }
     const riderInfoId = riderInfo.id;
 
     // Get settings once
-    const settings = await this.settingsService.findByVehicleType(
-      riderInfo.vehicleType,
+    const settings = await this.settingsService.findByVehicleTypeId(
+      riderInfo.vehicleTypeId,
     );
 
     // Check if all required documents are present
@@ -267,7 +290,7 @@ export class RiderDocumentService {
 
       if (!requiredDoc) {
         throw new BadRequestException(
-          `Document '${dto.docName}' is not required for vehicle type '${riderInfo.vehicleType}'`,
+          `Document '${dto.docName}' is not required for vehicle type`,
         );
       }
 

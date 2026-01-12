@@ -3,12 +3,13 @@ import {
   CreateDateColumn,
   Entity,
   JoinColumn,
+  ManyToOne,
   OneToMany,
   OneToOne,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
-import { VehicleType } from '../order/entities/vehicle-type.enum';
+import { VehicleType } from '../vehicle-type/entities/vehicle-type.entity';
 import { DocumentStatus } from './document-status.enum';
 import { RiderDocument } from './entities/rider-document.entity';
 import { User } from './user.entity';
@@ -18,7 +19,10 @@ export class RiderInfo {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column({ type: 'enum', enum: VehicleType, nullable: true })
+  @Column({ nullable: true })
+  vehicleTypeId: string;
+
+  @ManyToOne(() => VehicleType)
   vehicleType: VehicleType;
 
   @Column({

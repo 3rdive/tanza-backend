@@ -7,13 +7,17 @@ import {
 import { LocationService } from '../../location/location.service';
 import { ConfigService } from '@nestjs/config';
 import { NumberUtil } from '../../commons/number.util';
-import { VehicleType } from '../entities/vehicle-type.enum';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { VehicleType } from '../../vehicle-type/entities/vehicle-type.entity';
 
 @Injectable()
 export class CalculateDeliveryChargesUsecase {
   constructor(
     private readonly locationService: LocationService,
     private readonly configService: ConfigService,
+    @InjectRepository(VehicleType)
+    private readonly vehicleTypeRepository: Repository<VehicleType>,
   ) {}
 
   async calculateDeliveryFee(
@@ -161,6 +165,13 @@ export class CalculateDeliveryChargesUsecase {
     // In reality, you might want to calculate the optimal route
     const estimatedTotalDuration = `${Math.ceil(totalDistanceKm * 3)} minutes`; // Rough estimate: 3 minutes per km
 
+    // Determine vehicle type based on maximum distance
+    // If any delivery is > 5km, use van; otherwise use bike
+    const vehicleTypeName = maxDistanceFromPickup > 5 ? 'van' : 'bike';
+    const vehicleType = await this.vehicleTypeRepository.findOne({
+      where: { name: vehicleTypeName },
+    });
+
     return {
       totalAmount,
       totalDeliveryFee,
@@ -169,8 +180,7 @@ export class CalculateDeliveryChargesUsecase {
       deliveries,
       totalDistanceKm,
       estimatedTotalDuration,
-      vehicleType:
-        maxDistanceFromPickup > 5 ? VehicleType.VAN : VehicleType.BIKE,
+      vehicleTypeId: vehicleType?.id || null,
     };
   }
 }

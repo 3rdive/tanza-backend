@@ -1,5 +1,3 @@
-import { VehicleType } from '../entities/vehicle-type.enum';
-
 export interface SingleDeliveryLeg {
   deliveryLocation: [number, number]; // [lon, lat]
   distance_from_pickup_km: number;
@@ -15,5 +13,5 @@ export interface MultipleDeliveryFeeResult {
   deliveries: SingleDeliveryLeg[];
   totalDistanceKm: number;
   estimatedTotalDuration: string;
-  vehicleType: VehicleType;
+  vehicleTypeId: string | null;
 }

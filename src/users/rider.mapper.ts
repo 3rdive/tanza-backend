@@ -7,7 +7,8 @@ export class RiderMapper {
     const dto: RiderInfoDto = {
       id: entity.id,
       userId: entity.userId,
-      vehicleType: entity.vehicleType ?? null,
+      userName: `${entity.user?.firstName} ${entity.user?.lastName}`,
+      vehicleType: entity.vehicleType?.name,
       documentStatus: entity.documentStatus,
       rejectionReason: entity.rejectionReason,
       createdAt: entity.createdAt,

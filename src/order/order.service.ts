@@ -29,6 +29,7 @@ import { Wallets } from '../wallet/entities/wallet.entity';
 import { TrackingStatus } from './entities/tracking-status.enum';
 import { OrderMapper } from './mappers/order.mapper';
 import { OrderPreview } from './dto/order-preview';
+import { OrderDetailsDto } from './dto/order-details.dto';
 import { normalizeDateRange } from './order-functions';
 import { CreateNotficationEvent } from '../notification/create-notification.event';
 import { ActiveOrder } from './dto/active-order.dto';
@@ -230,11 +231,12 @@ export class OrderService {
     );
   }
 
-  async findOne(id: string): Promise<Order | null> {
-    return this.orderRepository.findOne({
+  async findOne(id: string): Promise<OrderDetailsDto | null> {
+    const order = await this.orderRepository.findOne({
       where: { id },
-      relations: ['orderTracking', 'deliveryDestinations'],
+      relations: ['orderTracking', 'deliveryDestinations', 'vehicleType'],
     });
+    return order ? OrderMapper.toOrderDetailsDto(order) : null;
   }
 
   async addOrderTracking({

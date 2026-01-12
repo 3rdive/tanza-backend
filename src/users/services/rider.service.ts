@@ -13,6 +13,7 @@ import { AdminUpdateRiderInfoDto } from '../dto/admin-update-rider-info.dto';
 import { ActiveStatus } from '../active-status.entity';
 import { Order } from '../../order/entities/order.entity';
 import { TrackingStatus } from '../../order/entities/tracking-status.enum';
+import { VehicleType } from 'src/vehicle-type/entities/vehicle-type.entity';
 
 /**
  * RiderService
@@ -36,8 +37,8 @@ export class RiderService {
     private readonly riderInfoRepository: Repository<RiderInfo>,
     @InjectRepository(ActiveStatus)
     private readonly activeStatusRepository: Repository<ActiveStatus>,
-    @InjectRepository(Order)
-    private readonly orderRepository: Repository<Order>,
+    @InjectRepository(VehicleType)
+    private readonly vehicleTypeRepository: Repository<VehicleType>,
   ) {}
 
   async initRiderInfo(userId: string) {
@@ -49,7 +50,7 @@ export class RiderService {
   async getRiderInfo(userId: string): Promise<RiderInfoDto> {
     const info = await this.riderInfoRepository.findOne({
       where: { userId },
-      relations: ['documents'],
+      relations: ['documents', 'vehicleType'],
     });
     if (!info) {
       throw new BadRequestException(
@@ -70,7 +71,17 @@ export class RiderService {
       );
     }
 
-    if (dto.vehicleType !== undefined) info.vehicleType = dto.vehicleType;
+    if (dto.vehicleType !== undefined) {
+      const vehicleType = await this.vehicleTypeRepository.findOne({
+        where: { name: dto.vehicleType },
+      });
+      if (!vehicleType) {
+        throw new BadRequestException(
+          StandardResponse.fail(`Vehicle type '${dto.vehicleType}' not found`),
+        );
+      }
+      info.vehicleTypeId = vehicleType.id;
+    }
     if (dto.documentStatus !== undefined) {
       if (!USER_DOCUMENT_STATUS_ALLOWED.includes(dto.documentStatus)) {
         throw new BadRequestException(
@@ -83,15 +94,19 @@ export class RiderService {
     }
 
     const saved = await this.riderInfoRepository.save(info);
-    return RiderMapper.toDto(saved);
+    // Reload with relations
+    const reloaded = await this.riderInfoRepository.findOne({
+      where: { id: saved.id },
+      relations: ['vehicleType'],
+    });
+    return RiderMapper.toDto(reloaded || saved);
   }
-
   async getAllPendingRiderDocument(
     status: DocumentStatus,
   ): Promise<RiderInfoDto[]> {
     const riders = await this.riderInfoRepository.find({
       where: { documentStatus: status },
-      relations: ['documents'],
+      relations: ['documents', 'vehicleType', 'user'],
     });
     return riders.map((r) => RiderMapper.toDto(r, true));
   }

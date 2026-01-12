@@ -13,10 +13,16 @@ import { JwtModule } from '@nestjs/jwt';
 import { CalculateDeliveryChargesUsecase } from './usecasses/calculate-delivery-charges.usecase';
 import { CreateOrderUsecase } from './usecasses/create-order.usecase';
 import { OrderSchedulerService } from './order-scheduler.service';
+import { VehicleType } from '../vehicle-type/entities/vehicle-type.entity';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Order, OrderTracking, DeliveryDestination]),
+    TypeOrmModule.forFeature([
+      Order,
+      OrderTracking,
+      DeliveryDestination,
+      VehicleType,
+    ]),
     WalletModule,
     LocationModule,
     UsersModule,
