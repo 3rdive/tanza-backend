@@ -44,6 +44,15 @@ export class RiderService {
   async initRiderInfo(userId: string) {
     const riderInfo = this.riderInfoRepository.create({ userId });
     await this.activeStatusService.initialize(userId);
+
+    const defaultVehicleType = await this.vehicleTypeRepository.findOne({
+      where: { name: 'bike' },
+    });
+
+    if (defaultVehicleType) {
+      riderInfo.vehicleTypeId = defaultVehicleType?.id;
+    }
+
     return await this.riderInfoRepository.save(riderInfo);
   }
 
