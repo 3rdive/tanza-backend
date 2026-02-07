@@ -18,6 +18,7 @@ import { TrackingStatus } from '../entities/tracking-status.enum';
 import { UserOrderRole } from '../entities/user-order-role.enum';
 import { CalculateDeliveryChargesUsecase } from './calculate-delivery-charges.usecase';
 import { RiderService } from '../../users/services/rider.service';
+import { OrderService } from '../order.service';
 
 @Injectable()
 export class CreateOrderUsecase {
@@ -35,6 +36,7 @@ export class CreateOrderUsecase {
     private readonly walletService: WalletService,
     private readonly dataSource: DataSource,
     private readonly riderService: RiderService,
+    private readonly orderService: OrderService,
   ) {}
 
   async createMultipleDeliveryOrder(
@@ -195,8 +197,12 @@ export class CreateOrderUsecase {
       transactionDto.orderId = savedOrder.id;
       this.eventBus.publish(new CreateTransactionEvent(transactionDto));
 
+      this.logger.log(
+        `about to find rider to order ${savedOrder.id} with pickup coordinates ${JSON.stringify(dto.pickUpCoordinates)}`,
+      );
+
       // Assign rider to order based on pickup location
-      await this.assignRiderToOrder(savedOrder.id, dto.pickUpCoordinates);
+      await this.orderService.assignRiderToOrder(savedOrder.id);
 
       return StandardResponse.ok(
         savedOrder,
