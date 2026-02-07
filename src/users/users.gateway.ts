@@ -33,7 +33,12 @@ export class UsersGateway implements OnGatewayConnection, OnGatewayDisconnect {
       const payload = await this.jwtService.verifyAsync(token as string, {
         secret: this.configService.get<string>('JWT_SECRET'),
       });
-      client.data.userId = payload.sub;
+      const userId = payload.sub;
+      client.data.userId = userId;
+
+      await this.activeStatusService.update(userId, {
+        status: 'active',
+      });
       console.log(`✅ User connected: ${payload.sub}`);
     } catch (err) {
       console.log('❌ Invalid user socket connection:', err.message || err);
